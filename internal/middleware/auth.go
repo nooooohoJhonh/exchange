@@ -21,6 +21,11 @@ func NewAuthMiddleware(authLogic logic.AuthLogic) *AuthMiddleware {
 	}
 }
 
+// SetAuthLogic 设置认证逻辑
+func (m *AuthMiddleware) SetAuthLogic(authLogic logic.AuthLogic) {
+	m.authLogic = authLogic
+}
+
 // RequireAuth 需要认证的中间件
 func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
