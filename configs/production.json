@@ -1,0 +1,48 @@
+{
+  "server": {
+    "address": ":8080",
+    "port": 8080,
+    "mode": "release",
+    "read_timeout": 30,
+    "write_timeout": 30
+  },
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "username": "root",
+    "password": "",
+    "database": "exchange",
+    "charset": "utf8mb4",
+    "max_idle_conns": 20,
+    "max_open_conns": 200,
+    "conn_max_lifetime": 3600
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "password": "",
+    "database": 0,
+    "pool_size": 20
+  },
+  "mongodb": {
+    "uri": "mongodb://localhost:27017",
+    "database": "exchange",
+    "timeout": 10
+  },
+  "jwt": {
+    "secret_key": "exchange-prod",
+    "expiration_hours": 24,
+    "issuer": "exchange-prod"
+  },
+  "log": {
+    "level": "debug",
+    "format": "json",
+    "output": "stdout",
+    "filename": "app.log",
+    "log_dir": "logs",
+    "access_log_file": "access.log",
+    "error_log_file": "error.log",
+    "enable_console": true,
+    "enable_file": true
+  }
+}

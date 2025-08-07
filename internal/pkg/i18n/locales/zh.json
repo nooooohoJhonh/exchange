@@ -1,0 +1,54 @@
+{
+  "success": "成功",
+  "error": "错误",
+  "invalid_request": "无效请求",
+  "invalid_request_data": "请求数据无效",
+  "internal_server_error": "内部服务器错误",
+  "not_found": "未找到",
+  "method_not_allowed": "方法不允许",
+  "too_many_requests": "请求过于频繁",
+  
+  "unauthorized": "未授权",
+  "forbidden": "禁止访问",
+  "invalid_token": "无效或过期的令牌",
+  "token_required": "需要授权令牌",
+  "invalid_credentials": "用户名或密码错误",
+  "account_inactive": "账户未激活",
+  "insufficient_permissions": "权限不足",
+  
+  "validation_failed": "验证失败",
+  "required_field": "此字段为必填项",
+  "invalid_email": "邮箱格式无效",
+  "invalid_password": "密码不符合要求",
+  "password_too_short": "密码至少需要8个字符",
+  "password_too_long": "密码不能超过128个字符",
+  "username_too_short": "用户名至少需要3个字符",
+  "username_too_long": "用户名不能超过50个字符",
+  
+  "user_not_found": "用户不存在",
+  "user_already_exists": "用户已存在",
+  "user_created": "用户创建成功",
+  "user_updated": "用户更新成功",
+  "user_deleted": "用户删除成功",
+  "login_successful": "登录成功",
+  "logout_successful": "退出成功",
+  "user_registered_successfully": "用户注册成功",
+  "user_creation_failed": "用户创建失败",
+  "token_generation_failed": "令牌生成失败",
+  
+  "database_error": "数据库错误",
+  "record_not_found": "记录不存在",
+  "duplicate_entry": "重复条目",
+  "foreign_key_constraint": "外键约束违反",
+  
+  "cache_error": "缓存错误",
+  "cache_miss": "缓存未命中",
+  
+  "file_upload_failed": "文件上传失败",
+  "file_not_found": "文件不存在",
+  "invalid_file_type": "无效的文件类型",
+  "file_too_large": "文件过大",
+  
+  "not_implemented": "功能尚未实现",
+  "request_timeout": "请求超时"
+}
