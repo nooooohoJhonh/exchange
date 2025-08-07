@@ -29,7 +29,7 @@ type Module struct {
 
 	// 中间件（Admin模块专用）
 	middlewareManager *middleware.MiddlewareManager
-	authMiddleware    *middleware.AuthMiddleware
+	authMiddleware    *middleware.AdminAuthMiddleware
 
 	// 业务逻辑层（Admin模块专用）
 	userLogic  logic.AdminUserLogic
@@ -70,7 +70,7 @@ func (module *Module) init() {
 	// 第一步：初始化数据访问层
 	module.initRepositories()
 
-	// 第二步：初始化中间件
+	// 第二步：初始化中间件（需要repository）
 	module.initMiddlewares()
 
 	// 第三步：初始化业务逻辑层
@@ -98,10 +98,10 @@ func (module *Module) initRepositories() {
 // initMiddlewares 初始化中间件（Admin模块专用）
 func (module *Module) initMiddlewares() {
 	// 创建中间件管理器
-	module.middlewareManager = middleware.NewMiddlewareManager(nil, module.redis)
+	module.middlewareManager = middleware.NewMiddlewareManager(module.redis)
 
 	// 创建Admin专用的认证中间件
-	module.authMiddleware = middleware.NewAuthMiddleware(nil) // 暂时为nil，在logic初始化后设置
+	module.authMiddleware = middleware.NewAdminAuthMiddleware(module.redis, module.config)
 }
 
 // initLogic 初始化业务逻辑层（Admin模块专用）
@@ -112,7 +112,7 @@ func (module *Module) initLogic() {
 	// 创建管理员业务逻辑
 	module.adminLogic = logic.NewAdminLogic(module.userRepo, module.adminRepo)
 
-	// 创建认证业务逻辑（暂时使用API的认证逻辑，后续可以创建专门的Admin认证逻辑）
+	// 创建认证业务逻辑
 	authLogic, err := logic.NewAdminAuthLogic(
 		module.config,
 		module.userRepo,
@@ -123,9 +123,6 @@ func (module *Module) initLogic() {
 		panic("Admin认证逻辑初始化失败: " + err.Error())
 	}
 	module.authLogic = authLogic
-
-	// 将认证逻辑设置到中间件管理器中
-	module.middlewareManager.SetAuthLogic(authLogic)
 
 	// 将认证逻辑设置到认证中间件中
 	module.authMiddleware.SetAuthLogic(authLogic)
@@ -166,6 +163,6 @@ func (module *Module) GetMiddlewareManager() *middleware.MiddlewareManager {
 }
 
 // GetAuthMiddleware 获取认证中间件（供其他模块使用）
-func (module *Module) GetAuthMiddleware() *middleware.AuthMiddleware {
+func (module *Module) GetAuthMiddleware() *middleware.AdminAuthMiddleware {
 	return module.authMiddleware
 }

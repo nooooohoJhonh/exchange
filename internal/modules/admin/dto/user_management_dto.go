@@ -5,25 +5,41 @@ import (
 	"regexp"
 	"strings"
 
-	"exchange/internal/models/mysql"
+	"exchange/internal/utils"
 )
 
 // GetUsersRequest 获取用户列表请求
 type GetUsersRequest struct {
-	Page     int    `form:"page" binding:"min=1"`
-	PageSize int    `form:"page_size" binding:"min=1,max=100"`
-	Status   string `form:"status"`
-	Role     string `form:"role"`
-	Keyword  string `form:"keyword"`
+	Page     int64  `form:"page" binding:"min=1"`              // 页码
+	PageSize int64  `form:"page_size" binding:"min=1,max=100"` // 每页大小
+	Status   string `form:"status"`                            // 用户状态
+	Role     string `form:"role"`                              // 用户角色
+	Keyword  string `form:"keyword"`                           // 搜索关键词
+}
+
+// Validate 验证获取用户列表请求
+func (r *GetUsersRequest) Validate() error {
+	// 验证并修正分页参数
+	r.Page, r.PageSize = utils.ValidatePageParams(r.Page, r.PageSize)
+	return nil
+}
+
+// UserInfo 用户信息（用于列表展示）
+type UserInfo struct {
+	ID        uint   `json:"id"`         // 用户ID
+	Username  string `json:"username"`   // 用户名
+	Email     string `json:"email"`      // 邮箱
+	Role      string `json:"role"`       // 角色
+	Status    string `json:"status"`     // 状态
+	CreatedAt string `json:"created_at"` // 创建时间
+	UpdatedAt string `json:"updated_at"` // 更新时间
+	LastLogin string `json:"last_login"` // 最后登录时间
 }
 
 // GetUsersResponse 获取用户列表响应
 type GetUsersResponse struct {
-	Users      []*mysql.PublicUser `json:"users"`
-	Total      int64               `json:"total"`
-	Page       int                 `json:"page"`
-	PageSize   int                 `json:"page_size"`
-	TotalPages int                 `json:"total_pages"`
+	Paginate utils.Paginate `json:"paginate"` // 分页信息
+	List     []UserInfo     `json:"list"`     // 用户列表
 }
 
 // CreateUserRequest 创建用户请求

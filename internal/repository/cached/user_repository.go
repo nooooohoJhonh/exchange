@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"exchange/internal/pkg/cache"
 	"exchange/internal/models/mysql"
+	"exchange/internal/pkg/cache"
 	mysqlRepo "exchange/internal/repository/mysql"
 )
 
 // CachedUserRepository 带缓存的用户Repository装饰器
 type CachedUserRepository struct {
 	repo         *mysqlRepo.UserRepository
-	cacheManager *cache.FlexibleCacheManager
+	cacheManager *cache.CacheManager
 	cacheTTL     time.Duration
 }
 
 // NewCachedUserRepository 创建带缓存的用户Repository
-func NewCachedUserRepository(repo *mysqlRepo.UserRepository, cacheManager *cache.FlexibleCacheManager) *CachedUserRepository {
+func NewCachedUserRepository(repo *mysqlRepo.UserRepository, cacheManager *cache.CacheManager) *CachedUserRepository {
 	return &CachedUserRepository{
 		repo:         repo,
 		cacheManager: cacheManager,
@@ -32,10 +32,10 @@ func (r *CachedUserRepository) Create(ctx context.Context, user *mysql.User) err
 	if err != nil {
 		return err
 	}
-	
+
 	// 缓存新创建的用户信息
 	r.cacheUserInfo(user)
-	
+
 	return nil
 }
 
@@ -48,16 +48,16 @@ func (r *CachedUserRepository) GetByID(ctx context.Context, id uint) (*mysql.Use
 	if err == nil {
 		return &cachedUser, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	user, err := r.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存用户信息
 	r.cacheUserInfo(user)
-	
+
 	return user, nil
 }
 
@@ -68,10 +68,10 @@ func (r *CachedUserRepository) GetByUsername(ctx context.Context, username strin
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存用户信息
 	r.cacheUserInfo(user)
-	
+
 	return user, nil
 }
 
@@ -82,10 +82,10 @@ func (r *CachedUserRepository) GetByEmail(ctx context.Context, email string) (*m
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存用户信息
 	r.cacheUserInfo(user)
-	
+
 	return user, nil
 }
 
@@ -95,10 +95,10 @@ func (r *CachedUserRepository) Update(ctx context.Context, user *mysql.User) err
 	if err != nil {
 		return err
 	}
-	
+
 	// 更新缓存
 	r.cacheUserInfo(user)
-	
+
 	return nil
 }
 
@@ -108,10 +108,10 @@ func (r *CachedUserRepository) Delete(ctx context.Context, id uint) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存
 	r.clearUserCache(id)
-	
+
 	return nil
 }
 
@@ -126,10 +126,10 @@ func (r *CachedUserRepository) UpdateLastLogin(ctx context.Context, userID uint)
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存，下次访问时重新加载
 	r.clearUserCache(userID)
-	
+
 	return nil
 }
 
@@ -150,16 +150,16 @@ func (r *CachedUserRepository) Count(ctx context.Context) (int64, error) {
 	if err == nil {
 		return count, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	count, err = r.repo.Count(ctx)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// 缓存计数（短期缓存5分钟）
 	r.cacheManager.SetTempData("user_count", count, 5*time.Minute, true)
-	
+
 	return count, nil
 }
 
@@ -172,16 +172,16 @@ func (r *CachedUserRepository) CountByStatus(ctx context.Context, status mysql.U
 	if err == nil {
 		return count, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	count, err = r.repo.CountByStatus(ctx, status)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// 缓存计数（短期缓存5分钟）
 	r.cacheManager.SetTempData(cacheKey, count, 5*time.Minute, true)
-	
+
 	return count, nil
 }
 
@@ -196,10 +196,10 @@ func (r *CachedUserRepository) UpdateStatus(ctx context.Context, userID uint, st
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存
 	r.clearUserCache(userID)
-	
+
 	return nil
 }
 
@@ -209,12 +209,12 @@ func (r *CachedUserRepository) BatchUpdateStatus(ctx context.Context, userIDs []
 	if err != nil {
 		return err
 	}
-	
+
 	// 批量清除缓存
 	for _, userID := range userIDs {
 		r.clearUserCache(userID)
 	}
-	
+
 	return nil
 }
 
@@ -223,7 +223,7 @@ func (r *CachedUserRepository) cacheUserInfo(user *mysql.User) {
 	if user == nil {
 		return
 	}
-	
+
 	cacheKey := fmt.Sprintf("%d", user.ID)
 	// 将用户信息缓存到内存中（频繁访问）
 	r.cacheManager.SetUserInfo(cacheKey, user.ToPublicUser(), r.cacheTTL)
@@ -233,7 +233,7 @@ func (r *CachedUserRepository) cacheUserInfo(user *mysql.User) {
 func (r *CachedUserRepository) clearUserCache(userID uint) {
 	cacheKey := fmt.Sprintf("%d", userID)
 	r.cacheManager.DeleteUserInfo(cacheKey)
-	
+
 	// 清除相关的计数缓存
 	r.cacheManager.DeleteTempData("user_count", true)
 	r.cacheManager.DeleteTempData(fmt.Sprintf("user_count_status_%s", mysql.UserStatusActive), true)

@@ -3,9 +3,11 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 
+	"exchange/internal/models/mysql"
 	"exchange/internal/modules/admin/dto"
 	"exchange/internal/modules/admin/logic"
 	"exchange/internal/utils"
+	"time"
 )
 
 // AdminHandler 管理员处理器 - 处理所有管理员相关的HTTP请求
@@ -88,4 +90,74 @@ func (h *AdminHandler) GetDashboard(c *gin.Context) {
 
 	// 第三步：返回仪表板信息
 	utils.SuccessWithMessage(c, "dashboard_retrieved", dashboard, nil)
+}
+
+// GetUsers 获取用户列表
+// 处理流程：
+// 1. 解析请求参数
+// 2. 验证请求参数
+// 3. 获取用户列表
+// 4. 转换用户数据
+// 5. 返回分页结果
+func (h *AdminHandler) GetUsers(c *gin.Context) {
+	// 第一步：解析请求参数
+	var req dto.GetUsersRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		utils.ErrorResponse(c, "invalid_request_data", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// 第二步：验证请求参数
+	if err := req.Validate(); err != nil {
+		utils.ErrorResponse(c, "validation_failed", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// 第三步：获取用户列表
+	users, total, err := h.userLogic.GetUsers(
+		c.Request.Context(),
+		req.Page,
+		req.PageSize,
+		req.Keyword,
+		req.Status,
+		req.Role,
+	)
+	if err != nil {
+		utils.ErrorResponse(c, "user_list_retrieval_failed", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// 第四步：转换用户数据
+	response := utils.ConvertPage(
+		users,
+		func(user *mysql.User) dto.UserInfo {
+			// 转换时间戳为时间字符串
+			createdAt := time.Unix(0, user.CreatedAt).Format("2006-01-02 15:04:05")
+			updatedAt := time.Unix(0, user.UpdatedAt).Format("2006-01-02 15:04:05")
+
+			var lastLogin string
+			if user.LastLoginAt != nil {
+				lastLogin = user.LastLoginAt.Format("2006-01-02 15:04:05")
+			} else {
+				lastLogin = "从未登录"
+			}
+
+			return dto.UserInfo{
+				ID:        user.ID,
+				Username:  user.Username,
+				Email:     user.Email,
+				Role:      string(user.Role),
+				Status:    string(user.Status),
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
+				LastLogin: lastLogin,
+			}
+		},
+		total,
+		req.Page,
+		req.PageSize,
+	)
+
+	// 第五步：返回分页结果
+	utils.SuccessWithMessage(c, "user_list_retrieved", response, nil)
 }

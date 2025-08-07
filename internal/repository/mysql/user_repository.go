@@ -20,17 +20,22 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+// DB 获取数据库实例
+func (r *UserRepository) DB() *gorm.DB {
+	return r.db
+}
+
 // Create 创建用户
 func (r *UserRepository) Create(ctx context.Context, user *mysql.User) error {
 	if err := user.Validate(); err != nil {
 		return fmt.Errorf("user validation failed: %w", err)
 	}
-	
+
 	result := r.db.WithContext(ctx).Create(user)
 	if result.Error != nil {
 		return fmt.Errorf("failed to create user: %w", result.Error)
 	}
-	
+
 	return nil
 }
 
@@ -44,7 +49,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uint) (*mysql.User, err
 		}
 		return nil, fmt.Errorf("failed to get user: %w", result.Error)
 	}
-	
+
 	return &user, nil
 }
 
@@ -58,7 +63,7 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 		}
 		return nil, fmt.Errorf("failed to get user by username: %w", result.Error)
 	}
-	
+
 	return &user, nil
 }
 
@@ -72,7 +77,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*mysql.U
 		}
 		return nil, fmt.Errorf("failed to get user by email: %w", result.Error)
 	}
-	
+
 	return &user, nil
 }
 
@@ -81,16 +86,16 @@ func (r *UserRepository) Update(ctx context.Context, user *mysql.User) error {
 	if err := user.Validate(); err != nil {
 		return fmt.Errorf("user validation failed: %w", err)
 	}
-	
+
 	result := r.db.WithContext(ctx).Save(user)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update user: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("user not found")
 	}
-	
+
 	return nil
 }
 
@@ -100,11 +105,11 @@ func (r *UserRepository) Delete(ctx context.Context, id uint) error {
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete user: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("user not found")
 	}
-	
+
 	return nil
 }
 
@@ -115,7 +120,7 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*mysql.
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to list users: %w", result.Error)
 	}
-	
+
 	return users, nil
 }
 
@@ -128,15 +133,15 @@ func (r *UserRepository) UpdateLastLogin(ctx context.Context, userID uint) error
 			"last_login_at": &now,
 			"login_count":   gorm.Expr("login_count + 1"),
 		})
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to update last login: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("user not found")
 	}
-	
+
 	return nil
 }
 
@@ -147,11 +152,11 @@ func (r *UserRepository) GetActiveUsers(ctx context.Context, limit, offset int) 
 		Where("status = ?", mysql.UserStatusActive).
 		Limit(limit).Offset(offset).
 		Find(&users)
-	
+
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to get active users: %w", result.Error)
 	}
-	
+
 	return users, nil
 }
 
@@ -162,11 +167,11 @@ func (r *UserRepository) GetUsersByRole(ctx context.Context, role mysql.UserRole
 		Where("role = ?", role).
 		Limit(limit).Offset(offset).
 		Find(&users)
-	
+
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to get users by role: %w", result.Error)
 	}
-	
+
 	return users, nil
 }
 
@@ -177,7 +182,7 @@ func (r *UserRepository) Count(ctx context.Context) (int64, error) {
 	if result.Error != nil {
 		return 0, fmt.Errorf("failed to count users: %w", result.Error)
 	}
-	
+
 	return count, nil
 }
 
@@ -187,11 +192,11 @@ func (r *UserRepository) CountByStatus(ctx context.Context, status mysql.UserSta
 	result := r.db.WithContext(ctx).Model(&mysql.User{}).
 		Where("status = ?", status).
 		Count(&count)
-	
+
 	if result.Error != nil {
 		return 0, fmt.Errorf("failed to count users by status: %w", result.Error)
 	}
-	
+
 	return count, nil
 }
 
@@ -199,16 +204,16 @@ func (r *UserRepository) CountByStatus(ctx context.Context, status mysql.UserSta
 func (r *UserRepository) Search(ctx context.Context, keyword string, limit, offset int) ([]*mysql.User, error) {
 	var users []*mysql.User
 	searchPattern := "%" + keyword + "%"
-	
+
 	result := r.db.WithContext(ctx).
 		Where("username LIKE ? OR email LIKE ?", searchPattern, searchPattern).
 		Limit(limit).Offset(offset).
 		Find(&users)
-	
+
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to search users: %w", result.Error)
 	}
-	
+
 	return users, nil
 }
 
@@ -217,15 +222,15 @@ func (r *UserRepository) UpdateStatus(ctx context.Context, userID uint, status m
 	result := r.db.WithContext(ctx).Model(&mysql.User{}).
 		Where("id = ?", userID).
 		Update("status", status)
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to update user status: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("user not found")
 	}
-	
+
 	return nil
 }
 
@@ -234,10 +239,10 @@ func (r *UserRepository) BatchUpdateStatus(ctx context.Context, userIDs []uint, 
 	result := r.db.WithContext(ctx).Model(&mysql.User{}).
 		Where("id IN ?", userIDs).
 		Update("status", status)
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to batch update user status: %w", result.Error)
 	}
-	
+
 	return nil
 }

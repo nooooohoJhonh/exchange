@@ -9,15 +9,15 @@ import (
 
 // APIRouter API路由管理器 - 负责设置所有API相关的路由
 type APIRouter struct {
-	userHandler    *apiHandlers.UserHandler   // 用户处理器
-	authMiddleware *middleware.AuthMiddleware // 认证中间件
+	userHandler    *apiHandlers.UserHandler       // 用户处理器
+	authMiddleware *middleware.UserAuthMiddleware // 用户认证中间件
 }
 
 // NewAPIRouter 创建API路由管理器
 // 参数说明：
 // - userHandler: 用户处理器，处理用户相关的HTTP请求
-// - authMiddleware: 认证中间件，用于验证用户身份
-func NewAPIRouter(userHandler *apiHandlers.UserHandler, authMiddleware *middleware.AuthMiddleware) *APIRouter {
+// - authMiddleware: 用户认证中间件，用于验证用户身份
+func NewAPIRouter(userHandler *apiHandlers.UserHandler, authMiddleware *middleware.UserAuthMiddleware) *APIRouter {
 	return &APIRouter{
 		userHandler:    userHandler,
 		authMiddleware: authMiddleware,

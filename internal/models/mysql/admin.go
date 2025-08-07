@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"errors"
-	"regexp"
 	"strings"
 	"time"
+
+	"exchange/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,8 +14,8 @@ import (
 type AdminRole string
 
 const (
-	AdminRoleSuper AdminRole = "super"  // 超级管理员
-	AdminRoleAdmin AdminRole = "admin"  // 普通管理员
+	AdminRoleSuper AdminRole = "super" // 超级管理员
+	AdminRoleAdmin AdminRole = "admin" // 普通管理员
 )
 
 // AdminStatus 管理员状态
@@ -46,51 +47,31 @@ func (Admin) TableName() string {
 
 // ValidateUsername 验证用户名
 func (a *Admin) ValidateUsername() error {
-	if len(a.Username) < 3 {
-		return errors.New("username must be at least 3 characters long")
-	}
-	if len(a.Username) > 50 {
-		return errors.New("username must be less than 50 characters")
-	}
-	
-	// 用户名只能包含字母、数字、下划线和连字符
-	matched, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, a.Username)
-	if !matched {
-		return errors.New("username can only contain letters, numbers, underscores and hyphens")
-	}
-	
-	return nil
+	return utils.ValidateUsername(a.Username)
 }
 
 // ValidateEmail 验证邮箱
 func (a *Admin) ValidateEmail() error {
-	if a.Email == "" {
-		return errors.New("email is required")
+	if err := utils.ValidateEmail(a.Email); err != nil {
+		return err
 	}
-	
-	// 简单的邮箱格式验证
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailRegex.MatchString(a.Email) {
-		return errors.New("invalid email format")
-	}
-	
+
 	// 转换为小写
 	a.Email = strings.ToLower(a.Email)
-	
 	return nil
 }
 
 // SetPassword 设置密码（加密存储）
 func (a *Admin) SetPassword(password string) error {
-	if err := ValidatePassword(password); err != nil {
+	if err := utils.ValidatePassword(password); err != nil {
 		return err
 	}
-	
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	
+
 	a.PasswordHash = string(hashedPassword)
 	return nil
 }
@@ -106,14 +87,14 @@ func (a *Admin) IsSuper() bool {
 	return a.Role == AdminRoleSuper
 }
 
-// IsActive 检查管理员是否激活
+// IsActive 检查是否激活
 func (a *Admin) IsActive() bool {
 	return a.Status == AdminStatusActive
 }
 
-// CanLogin 检查管理员是否可以登录
+// CanLogin 检查是否可以登录
 func (a *Admin) CanLogin() bool {
-	return a.IsActive() && !a.IsDeleted()
+	return a.IsActive()
 }
 
 // UpdateLoginInfo 更新登录信息
@@ -128,29 +109,31 @@ func (a *Admin) Validate() error {
 	if err := a.ValidateUsername(); err != nil {
 		return err
 	}
-	
+
 	if err := a.ValidateEmail(); err != nil {
 		return err
 	}
-	
-	if a.PasswordHash == "" {
-		return errors.New("password is required")
-	}
-	
+
 	// 验证角色
-	if a.Role != AdminRoleSuper && a.Role != AdminRoleAdmin {
+	switch a.Role {
+	case AdminRoleSuper, AdminRoleAdmin:
+		// 角色有效
+	default:
 		return errors.New("invalid admin role")
 	}
-	
+
 	// 验证状态
-	if a.Status != AdminStatusActive && a.Status != AdminStatusInactive && a.Status != AdminStatusBanned {
+	switch a.Status {
+	case AdminStatusActive, AdminStatusInactive, AdminStatusBanned:
+		// 状态有效
+	default:
 		return errors.New("invalid admin status")
 	}
-	
+
 	return nil
 }
 
-// ToPublicAdmin 转换为公开管理员信息（不包含敏感数据）
+// ToPublicAdmin 转换为公开管理员信息
 func (a *Admin) ToPublicAdmin() *PublicAdmin {
 	return &PublicAdmin{
 		ID:          a.ID,
@@ -166,7 +149,7 @@ func (a *Admin) ToPublicAdmin() *PublicAdmin {
 	}
 }
 
-// PublicAdmin 公开管理员信息结构
+// PublicAdmin 公开管理员信息（不包含敏感数据）
 type PublicAdmin struct {
 	ID          uint        `json:"id"`
 	Username    string      `json:"username"`

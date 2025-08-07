@@ -3,33 +3,11 @@ package utils
 import (
 	"strings"
 	"time"
-
-	"exchange/internal/pkg/logger"
 )
 
 // Contains 检查字符串是否包含子字符串
 func Contains(s, substr string) bool {
 	return strings.Contains(s, substr)
-}
-
-// Info 记录信息日志
-func Info(message string, data map[string]interface{}) {
-	logger.Info(message, data)
-}
-
-// Warn 记录警告日志
-func Warn(message string, data map[string]interface{}) {
-	logger.Warn(message, data)
-}
-
-// Error 记录错误日志
-func Error(message string, data map[string]interface{}) {
-	logger.Error(message, data)
-}
-
-// Debug 记录调试日志
-func Debug(message string, data map[string]interface{}) {
-	logger.Debug(message, data)
 }
 
 // GetCurrentTimestamp 获取当前时间戳

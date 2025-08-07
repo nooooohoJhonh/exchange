@@ -9,15 +9,15 @@ import (
 
 // AdminRouter Admin路由管理器 - 负责设置所有Admin相关的路由
 type AdminRouter struct {
-	adminHandler   *adminHandlers.AdminHandler // 管理员处理器
-	authMiddleware *middleware.AuthMiddleware  // 认证中间件
+	adminHandler   *adminHandlers.AdminHandler     // 管理员处理器
+	authMiddleware *middleware.AdminAuthMiddleware // Admin认证中间件
 }
 
 // NewAdminRouter 创建Admin路由管理器
 // 参数说明：
 // - adminHandler: 管理员处理器，处理管理员相关的HTTP请求
-// - authMiddleware: 认证中间件，用于验证管理员身份
-func NewAdminRouter(adminHandler *adminHandlers.AdminHandler, authMiddleware *middleware.AuthMiddleware) *AdminRouter {
+// - authMiddleware: Admin认证中间件，用于验证管理员身份
+func NewAdminRouter(adminHandler *adminHandlers.AdminHandler, authMiddleware *middleware.AdminAuthMiddleware) *AdminRouter {
 	return &AdminRouter{
 		adminHandler:   adminHandler,
 		authMiddleware: authMiddleware,
@@ -56,9 +56,10 @@ func (r *AdminRouter) setupAuthRoutes(adminV1 *gin.RouterGroup) {
 // setupAdminRoutes 设置管理员管理路由（需要认证）
 func (r *AdminRouter) setupAdminRoutes(adminV1 *gin.RouterGroup) {
 	admin := adminV1.Group("/admin")
-	admin.Use(r.authMiddleware.RequireAdmin()) // 添加管理员认证中间件
+	admin.Use(r.authMiddleware.RequireAuth(), r.authMiddleware.RequireAdmin()) // 添加Admin认证和角色验证中间件
 	{
 		admin.GET("/dashboard", r.adminHandler.GetDashboard) // 获取仪表板
+		admin.GET("/users", r.adminHandler.GetUsers)         // 获取用户列表
 		// 注意：其他管理员功能可以在这里添加
 	}
 }

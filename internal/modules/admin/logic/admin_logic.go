@@ -15,6 +15,7 @@ import (
 	"exchange/internal/modules/api/logic" // 导入API模块的logic以使用Claims类型
 	"exchange/internal/pkg/config"
 	"exchange/internal/repository"
+	"exchange/internal/utils"
 )
 
 // AdminLogic 管理员业务逻辑接口 - 定义管理员相关的业务操作
@@ -192,7 +193,7 @@ type AdminUserLogic interface {
 	GetUserByID(ctx context.Context, userID uint) (*mysql.User, error)
 
 	// GetUsers 获取用户列表
-	GetUsers(ctx context.Context, page, pageSize int) ([]*mysql.User, int64, error)
+	GetUsers(ctx context.Context, page, pageSize int64, keyword, status, role string) ([]*mysql.User, int64, error)
 
 	// UpdateUser 更新用户信息
 	UpdateUser(ctx context.Context, userID uint, username, email string) (*mysql.User, error)
@@ -228,9 +229,53 @@ func (l *AdminUserLogicImpl) GetUserByID(ctx context.Context, userID uint) (*mys
 }
 
 // GetUsers 获取用户列表
-func (l *AdminUserLogicImpl) GetUsers(ctx context.Context, page, pageSize int) ([]*mysql.User, int64, error) {
-	// 这里简化处理，实际应该实现分页查询
-	return []*mysql.User{}, 0, nil
+func (l *AdminUserLogicImpl) GetUsers(ctx context.Context, page, pageSize int64, keyword, status, role string) ([]*mysql.User, int64, error) {
+	var users []*mysql.User
+	var total int64
+	var err error
+
+	// 构建查询条件
+	conditions := make(map[string]interface{})
+	if status != "" {
+		conditions["status"] = status
+	}
+	if role != "" {
+		conditions["role"] = role
+	}
+
+	// 定义搜索字段
+	searchFields := []string{"username", "email"}
+
+	// 使用GORM分页工具进行查询
+	if keyword != "" {
+		// 带关键词搜索的分页查询
+		total, err = utils.GormPaginateWithKeyword(
+			l.userRepo.DB(), // 数据库实例
+			&mysql.User{},   // 模型
+			int(page),       // 页码
+			int(pageSize),   // 每页大小
+			keyword,         // 搜索关键词
+			searchFields,    // 搜索字段
+			conditions,      // 查询条件
+			&users,          // 结果
+		)
+	} else {
+		// 普通分页查询
+		total, err = utils.GormPaginateWithCount(
+			l.userRepo.DB(), // 数据库实例
+			&mysql.User{},   // 模型
+			int(page),       // 页码
+			int(pageSize),   // 每页大小
+			conditions,      // 查询条件
+			&users,          // 结果
+		)
+	}
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("获取用户列表失败: %w", err)
+	}
+
+	return users, total, nil
 }
 
 // UpdateUser 更新用户信息

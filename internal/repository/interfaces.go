@@ -6,6 +6,8 @@ import (
 
 	"exchange/internal/models/mongodb"
 	"exchange/internal/models/mysql"
+
+	"gorm.io/gorm"
 )
 
 // BaseRepository 基础Repository接口
@@ -35,6 +37,7 @@ type UserRepository interface {
 	Search(ctx context.Context, keyword string, limit, offset int) ([]*mysql.User, error)
 	UpdateStatus(ctx context.Context, userID uint, status mysql.UserStatus) error
 	BatchUpdateStatus(ctx context.Context, userIDs []uint, status mysql.UserStatus) error
+	DB() *gorm.DB // 获取数据库实例
 }
 
 // AdminRepository 管理员Repository接口

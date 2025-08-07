@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"exchange/internal/pkg/cache"
 	"exchange/internal/models/mysql"
+	"exchange/internal/pkg/cache"
 	mysqlRepo "exchange/internal/repository/mysql"
 )
 
 // CachedAdminRepository 带缓存的管理员Repository装饰器
 type CachedAdminRepository struct {
 	repo         *mysqlRepo.AdminRepository
-	cacheManager *cache.FlexibleCacheManager
+	cacheManager *cache.CacheManager
 	cacheTTL     time.Duration
 }
 
 // NewCachedAdminRepository 创建带缓存的管理员Repository
-func NewCachedAdminRepository(repo *mysqlRepo.AdminRepository, cacheManager *cache.FlexibleCacheManager) *CachedAdminRepository {
+func NewCachedAdminRepository(repo *mysqlRepo.AdminRepository, cacheManager *cache.CacheManager) *CachedAdminRepository {
 	return &CachedAdminRepository{
 		repo:         repo,
 		cacheManager: cacheManager,
@@ -32,10 +32,10 @@ func (r *CachedAdminRepository) Create(ctx context.Context, admin *mysql.Admin) 
 	if err != nil {
 		return err
 	}
-	
+
 	// 缓存新创建的管理员信息
 	r.cacheAdminInfo(admin)
-	
+
 	return nil
 }
 
@@ -48,16 +48,16 @@ func (r *CachedAdminRepository) GetByID(ctx context.Context, id uint) (*mysql.Ad
 	if err == nil {
 		return &cachedAdmin, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	admin, err := r.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存管理员信息
 	r.cacheAdminInfo(admin)
-	
+
 	return admin, nil
 }
 
@@ -68,10 +68,10 @@ func (r *CachedAdminRepository) GetByUsername(ctx context.Context, username stri
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存管理员信息
 	r.cacheAdminInfo(admin)
-	
+
 	return admin, nil
 }
 
@@ -82,10 +82,10 @@ func (r *CachedAdminRepository) GetByEmail(ctx context.Context, email string) (*
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 缓存管理员信息
 	r.cacheAdminInfo(admin)
-	
+
 	return admin, nil
 }
 
@@ -95,10 +95,10 @@ func (r *CachedAdminRepository) Update(ctx context.Context, admin *mysql.Admin) 
 	if err != nil {
 		return err
 	}
-	
+
 	// 更新缓存
 	r.cacheAdminInfo(admin)
-	
+
 	return nil
 }
 
@@ -108,10 +108,10 @@ func (r *CachedAdminRepository) Delete(ctx context.Context, id uint) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存
 	r.clearAdminCache(id)
-	
+
 	return nil
 }
 
@@ -126,10 +126,10 @@ func (r *CachedAdminRepository) UpdateLastLogin(ctx context.Context, adminID uin
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存，下次访问时重新加载
 	r.clearAdminCache(adminID)
-	
+
 	return nil
 }
 
@@ -150,16 +150,16 @@ func (r *CachedAdminRepository) Count(ctx context.Context) (int64, error) {
 	if err == nil {
 		return count, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	count, err = r.repo.Count(ctx)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// 缓存计数（短期缓存5分钟）
 	r.cacheManager.SetTempData("admin_count", count, 5*time.Minute, true)
-	
+
 	return count, nil
 }
 
@@ -172,16 +172,16 @@ func (r *CachedAdminRepository) CountByStatus(ctx context.Context, status mysql.
 	if err == nil {
 		return count, nil
 	}
-	
+
 	// 缓存未命中，从数据库获取
 	count, err = r.repo.CountByStatus(ctx, status)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	// 缓存计数（短期缓存5分钟）
 	r.cacheManager.SetTempData(cacheKey, count, 5*time.Minute, true)
-	
+
 	return count, nil
 }
 
@@ -196,10 +196,10 @@ func (r *CachedAdminRepository) UpdateStatus(ctx context.Context, adminID uint, 
 	if err != nil {
 		return err
 	}
-	
+
 	// 清除缓存
 	r.clearAdminCache(adminID)
-	
+
 	return nil
 }
 
@@ -209,12 +209,12 @@ func (r *CachedAdminRepository) BatchUpdateStatus(ctx context.Context, adminIDs 
 	if err != nil {
 		return err
 	}
-	
+
 	// 批量清除缓存
 	for _, adminID := range adminIDs {
 		r.clearAdminCache(adminID)
 	}
-	
+
 	return nil
 }
 
@@ -223,7 +223,7 @@ func (r *CachedAdminRepository) cacheAdminInfo(admin *mysql.Admin) {
 	if admin == nil {
 		return
 	}
-	
+
 	cacheKey := fmt.Sprintf("admin_%d", admin.ID)
 	// 将管理员信息缓存到内存中（频繁访问）
 	r.cacheManager.SetUserInfo(cacheKey, admin.ToPublicAdmin(), r.cacheTTL)
@@ -233,7 +233,7 @@ func (r *CachedAdminRepository) cacheAdminInfo(admin *mysql.Admin) {
 func (r *CachedAdminRepository) clearAdminCache(adminID uint) {
 	cacheKey := fmt.Sprintf("admin_%d", adminID)
 	r.cacheManager.DeleteUserInfo(cacheKey)
-	
+
 	// 清除相关的计数缓存
 	r.cacheManager.DeleteTempData("admin_count", true)
 	r.cacheManager.DeleteTempData(fmt.Sprintf("admin_count_status_%s", mysql.AdminStatusActive), true)
