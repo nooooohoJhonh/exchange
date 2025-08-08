@@ -25,7 +25,6 @@ func main() {
 	// 为monitor服务设置专门的日志配置
 	monitorLogConfig := cfg.Log
 	monitorLogConfig.Filename = cfg.Log.CronLogFile
-	monitorLogConfig.LogDir = "logs/monitor"
 
 	// 初始化日志
 	if err := logger.Init(&monitorLogConfig); err != nil {

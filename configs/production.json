@@ -43,7 +43,13 @@
     "access_log_file": "access.log",
     "error_log_file": "error.log",
     "cron_log_file": "cron.log",
-    "enable_console": false,
-    "enable_file": true
+    "enable_console": true,
+    "enable_file": true,
+    "max_size": 100,
+    "max_age": 30,
+    "max_backups": 10,
+    "compress": true,
+    "local_time": true,
+    "rotate_daily": true
   }
 }

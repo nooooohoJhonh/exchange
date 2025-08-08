@@ -89,4 +89,10 @@ help:
 	@echo "  dev           - Start development server"
 	@echo "  prod-build    - Build for production"
 	@echo "  setup         - Setup project directories"
+	@echo "  start-cron    - Start cron worker system"
 	@echo "  help          - Show this help message"
+
+# 启动定时任务系统
+start-cron:
+	@echo "Starting cron worker..."
+	$(GOCMD) run cmd/cron/main.go

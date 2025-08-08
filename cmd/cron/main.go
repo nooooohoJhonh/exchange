@@ -23,7 +23,6 @@ func main() {
 	// 为worker服务设置专门的日志配置
 	workerLogConfig := cfg.Log
 	workerLogConfig.Filename = cfg.Log.CronLogFile
-	workerLogConfig.LogDir = "logs/worker"
 
 	// 初始化日志
 	if err := appLogger.Init(&workerLogConfig); err != nil {
@@ -54,6 +53,9 @@ func main() {
 	worker.RegisterTaskEveryHours(task.ExampleTask3{}, 2)    // 每2小时执行
 	worker.RegisterTaskEveryDays(task.ExampleTask{}, 1)      // 每1天执行
 	worker.RegisterTaskDailyAt(task.ExampleTask3{}, "01:30") // 每天01:30执行
+
+	// 注册日志清理任务
+	worker.RegisterTaskDailyAt(task.LogCleanupTask{}, "02:00") // 每天02:00执行日志清理
 
 	// 启动任务执行器
 	worker.Start()
