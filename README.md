@@ -1,6 +1,6 @@
 # Exchange Platform
 
-一个基于 Go 语言开发的综合性平台，集成了 HTTP API、管理后台、WebSocket 即时通讯功能和分布式定时任务系统。
+基于 Go 语言开发，集成了 HTTP API、管理后台、WebSocket 即时通讯功能和分布式定时任务系统。
 
 ## 🚀 功能特性
 
@@ -11,7 +11,7 @@
 - **多数据库支持**: MySQL、Redis、MongoDB
 - **国际化支持**: 基于 go-i18n 的多语言支持
 - **JWT 认证**: 安全的用户认证机制
-- **日志系统**: 结构化日志记录，支持日志轮转和分类管理
+- **日志系统**: 结构化日志记录，支持按天存储和自动清理
 - **优雅关闭**: 支持优雅关闭和资源清理
 
 ## 🏗️ 技术栈
@@ -37,7 +37,7 @@ exchange/
 │   ├── server/            # 服务器入口
 │   └── cron/              # 定时任务服务入口
 │       ├── main.go        # Cron服务主程序
-│       ├── web/           # Cron Web管理界面
+│       ├── monitor/       # Cron监控界面
 │       └── task/          # 定时任务定义
 ├── configs/               # 配置文件
 │   ├── development.json   # 开发环境配置
@@ -63,11 +63,10 @@ exchange/
 │   ├── repository/       # 数据访问层
 │   └── utils/            # 工具函数
 ├── logs/                 # 日志文件
-│   ├── app.log          # 主应用日志
-│   ├── access.log       # 访问日志
-│   ├── error.log        # 错误日志
-│   └── cron/            # Cron服务日志
-│       └── cron.log     # 定时任务日志
+│   ├── app_*.log        # 按天存储的主应用日志
+│   ├── access_*.log     # 按天存储的访问日志
+│   ├── error_*.log      # 按天存储的错误日志
+│   └── cron_*.log       # 按天存储的定时任务日志
 ├── scripts/              # 脚本文件
 │   └── init_admin.go    # 管理员初始化脚本
 ├── build/                # 构建输出
@@ -88,9 +87,9 @@ exchange/
 
 ### 安装和运行
 
-1. **克隆项目**
+1. **获取项目代码**
    ```bash
-   git clone <repository-url>
+   git clone <internal-repository-url>
    cd exchange
    ```
 
@@ -140,13 +139,13 @@ exchange/
 
 7. **运行定时任务服务**
    ```bash
-   go run cmd/cron/main.go
+   make start-cron
    ```
 
 8. **访问服务**
    - API 服务: http://localhost:8080
    - 健康检查: http://localhost:8080/ping
-   - Cron Web管理: http://localhost:8081
+   - Cron监控界面: http://localhost:8081
 
 ## 🔧 构建和部署
 
@@ -190,6 +189,7 @@ make lint
 | `make dev` | 启动开发服务器 |
 | `make prod-build` | 生产环境构建 |
 | `make setup` | 设置项目目录 |
+| `make start-cron` | 启动定时任务系统 |
 | `make help` | 显示帮助信息 |
 
 ## ⏰ 定时任务系统
@@ -208,10 +208,10 @@ make lint
 
 ```bash
 # 启动定时任务服务
-go run cmd/cron/main.go
+make start-cron
 
-# 启动Web管理界面
-go run cmd/cron/web/main.go
+# 或者直接运行
+go run cmd/cron/main.go
 ```
 
 ### 创建自定义任务
@@ -248,18 +248,14 @@ func (t MyCustomTask) Run(ctx context.Context, globalServices *services.GlobalSe
 
 ```go
 // 间隔调度
-manager.RegisterTaskEverySeconds(task.ExampleTask{}, 30)  // 每30秒执行
-manager.RegisterTaskEveryMinutes(task.ExampleTask2{}, 1)  // 每1分钟执行
-manager.RegisterTaskEveryHours(task.MyCustomTask{}, 2)    // 每2小时执行
-manager.RegisterTaskEveryDays(task.CleanupTask{}, 1)      // 每1天执行
+worker.RegisterTaskEverySeconds(task.ExampleTask{}, 30)  // 每30秒执行
+worker.RegisterTaskEveryMinutes(task.ExampleTask2{}, 1)  // 每1分钟执行
+worker.RegisterTaskEveryHours(task.MyCustomTask{}, 2)    // 每2小时执行
+worker.RegisterTaskEveryDays(task.CleanupTask{}, 1)      // 每1天执行
 
 // 每天特定时间调度
-manager.RegisterTaskDailyAt(task.ExampleTask3{}, "01:30") // 每天01:30执行
-manager.RegisterTaskDailyAt(task.BackupTask{}, "02:00")   // 每天02:00执行
-manager.RegisterTaskDailyAt(task.ReportTask{}, "09:00")   // 每天09:00执行
-
-// 自定义间隔
-manager.RegisterTaskWithInterval(task.MyTask{}, 45*time.Second)
+worker.RegisterTaskDailyAt(task.ExampleTask3{}, "01:30") // 每天01:30执行
+worker.RegisterTaskDailyAt(task.LogCleanupTask{}, "02:00") // 每天02:00执行日志清理
 ```
 
 ### 调度方式对比
@@ -271,36 +267,24 @@ manager.RegisterTaskWithInterval(task.MyTask{}, 45*time.Second)
 | `RegisterTaskEveryHours` | `RegisterTaskEveryHours(task, 2)` | 每2小时执行一次 |
 | `RegisterTaskEveryDays` | `RegisterTaskEveryDays(task, 1)` | 每1天执行一次 |
 | `RegisterTaskDailyAt` | `RegisterTaskDailyAt(task, "01:30")` | 每天01:30执行一次 |
-| `RegisterTaskWithInterval` | `RegisterTaskWithInterval(task, 45*time.Second)` | 自定义间隔 |
-
-### 技术实现
-
-重构后的系统使用 `go-co-op/gocron` 作为核心调度引擎：
-
-```go
-// 创建调度器
-scheduler := gocron.NewScheduler(time.Local)
-
-// 间隔调度
-scheduler.Every(30).Seconds().Do(task)
-
-// 每天特定时间调度
-scheduler.Every(1).Day().At("01:30").Do(task)
-
-// 启动调度器
-scheduler.StartAsync()
-```
 
 ## 📊 日志系统
 
-### 日志分类
+### 日志分类和按天存储
 
-项目采用分类日志管理，不同类型的日志独立存储：
+项目采用分类日志管理，不同类型的日志独立存储并按天分割：
 
-- **主应用日志**: `logs/app.log`
-- **访问日志**: `logs/access.log`
-- **错误日志**: `logs/error.log`
-- **Cron任务日志**: `logs/cron/cron.log`
+- **主应用日志**: `logs/app_2025-08-08.log`
+- **访问日志**: `logs/access_2025-08-08.log`
+- **错误日志**: `logs/error_2025-08-08.log`
+- **Cron任务日志**: `logs/cron_2025-08-08.log`
+
+### 日志清理功能
+
+- **自动清理**: 每天凌晨2点自动执行清理
+- **按年龄清理**: 默认保留30天的日志文件
+- **按数量清理**: 默认保留10个备份文件
+- **压缩归档**: 自动压缩旧日志文件
 
 ### 日志配置
 
@@ -322,7 +306,8 @@ scheduler.StartAsync()
     "max_size": 100,
     "max_age": 30,
     "max_backups": 10,
-    "compress": true
+    "compress": true,
+    "rotate_daily": true
   }
 }
 ```
@@ -334,12 +319,18 @@ scheduler.StartAsync()
 - **warn**: 警告信息
 - **error**: 错误信息
 
-### 日志轮转
+### 手动日志清理
 
-- **按大小轮转**: 单个日志文件最大 100MB
-- **按时间轮转**: 日志文件保留 30 天
-- **压缩归档**: 自动压缩旧日志文件
-- **备份管理**: 最多保留 10 个备份文件
+```go
+// 试运行清理（不实际删除文件）
+err := logger.ForceCleanup(true)
+
+// 实际清理
+err := logger.ForceCleanup(false)
+
+// 获取日志统计信息
+stats, err := logger.GetLogStats()
+```
 
 ## 🏗️ 架构设计
 
@@ -428,3 +419,5 @@ scheduler.StartAsync()
 - **结构化日志**: JSON 格式便于日志分析
 - **错误追踪**: 详细的错误堆栈信息
 - **性能监控**: 记录关键操作的执行时间
+- **按天存储**: 日志文件按日期自动分割
+- **自动清理**: 定期清理过期日志文件
