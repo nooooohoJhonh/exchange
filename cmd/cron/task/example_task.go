@@ -7,6 +7,7 @@ import (
 	userRepo "exchange/internal/repository/mysql"
 	"exchange/internal/utils"
 	"fmt"
+	"time"
 )
 
 // ExampleTask 示例任务
@@ -28,6 +29,7 @@ func (e ExampleTask) Schedule() string {
 func (e ExampleTask) Run(ctx context.Context, globalServices *services.GlobalServices) error {
 	fmt.Println("执行示例任务逻辑...")
 
+	time.Sleep(time.Second * 2)
 	// 检查全局服务是否已初始化
 	if !globalServices.IsInitialized() {
 		return fmt.Errorf("全局服务未初始化")

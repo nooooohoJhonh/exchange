@@ -3,11 +3,11 @@ package task
 import (
 	"context"
 	"exchange/internal/pkg/services"
-	"exchange/internal/utils"
 	"fmt"
+	"time"
 )
 
-// ExampleTask2 示例任务
+// ExampleTask2 示例任务2
 type ExampleTask2 struct{}
 
 func (e ExampleTask2) Name() string {
@@ -15,16 +15,10 @@ func (e ExampleTask2) Name() string {
 }
 
 func (e ExampleTask2) Description() string {
-	return "这是一个示例任务，用于演示定时任务功能"
+	return "这是一个示例任务，每1分钟执行一次"
 }
 
-func (e ExampleTask2) Schedule() string {
-	return utils.EveryMinutes(1) // 每分钟
-}
-
-// Run 任务执行方法
 func (e ExampleTask2) Run(ctx context.Context, globalServices *services.GlobalServices) error {
-	fmt.Println("执行示例任务逻辑...")
-	// 模拟执行任务逻辑
+	fmt.Printf("[%s] 执行示例任务2...\n", time.Now().Format("2006-01-02 15:04:05"))
 	return nil
 }

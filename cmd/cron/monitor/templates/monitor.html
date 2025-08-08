@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #333;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-item .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .status-item .value {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+        
+        .status-item .value.success { color: #10b981; }
+        .status-item .value.warning { color: #f59e0b; }
+        .status-item .value.error { color: #ef4444; }
+        .status-item .value.info { color: #3b82f6; }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .task-list, .instance-list {
+            list-style: none;
+        }
+        
+        .task-item, .instance-item {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .task-name, .instance-id {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .task-desc, .instance-info {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .instance-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-running { background: #dcfce7; color: #166534; }
+        .status-stopped { background: #fef3c7; color: #92400e; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>分布式定时任务监控</h1>
+            <div class="subtitle">实时监控所有任务执行器的状态</div>
+            <div style="margin-top: 15px; color: #666;">
+                最后更新: <span id="lastUpdate">{{.time}}</span>
+                <button class="refresh-btn" onclick="refreshData()">刷新数据</button>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="label">监控状态</div>
+                <div class="value success" id="monitorStatus">运行中</div>
+            </div>
+            <div class="status-item">
+                <div class="label">活跃实例</div>
+                <div class="value info" id="instanceCount">-</div>
+            </div>
+            <div class="status-item">
+                <div class="label">任务数量</div>
+                <div class="value info" id="taskCount">-</div>
+            </div>
+            <div class="status-item">
+                <div class="label">系统时间</div>
+                <div class="value info" id="systemTime">-</div>
+            </div>
+        </div>
+        
+        <div class="content-grid">
+            <div class="card">
+                <h2>任务列表</h2>
+                <div id="taskList" class="loading">加载中...</div>
+            </div>
+            
+            <div class="card">
+                <h2>实例列表</h2>
+                <div id="instanceList" class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 刷新数据
+        function refreshData() {
+            loadStatus();
+            loadTasks();
+            loadInstances();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN');
+            document.getElementById('systemTime').textContent = new Date().toLocaleString('zh-CN');
+        }
+        
+        // 加载状态
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const status = data.data;
+                    document.getElementById('monitorStatus').textContent = status.status;
+                    document.getElementById('instanceCount').textContent = status.instance_count;
+                }
+            } catch (error) {
+                console.error('加载状态失败:', error);
+            }
+        }
+        
+        // 加载任务列表
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const data = await response.json();
+                
+                const taskList = document.getElementById('taskList');
+                document.getElementById('taskCount').textContent = data.success ? data.data.length : '-';
+                
+                if (data.success && data.data.length > 0) {
+                    const html = data.data.map(task => `
+                        <div class="task-item">
+                            <div class="task-name">${task.name}</div>
+                            <div class="task-desc">${task.description}</div>
+                            <div class="task-desc">执行实例: ${task.instances.join(', ')}</div>
+                        </div>
+                    `).join('');
+                    taskList.innerHTML = html;
+                } else {
+                    taskList.innerHTML = '<div class="loading">暂无任务</div>';
+                }
+            } catch (error) {
+                document.getElementById('taskList').innerHTML = '<div class="error">加载任务失败</div>';
+                console.error('加载任务失败:', error);
+            }
+        }
+        
+        // 加载实例列表
+        async function loadInstances() {
+            try {
+                const response = await fetch('/api/instances');
+                const data = await response.json();
+                
+                const instanceList = document.getElementById('instanceList');
+                
+                if (data.success && data.data.length > 0) {
+                    const html = data.data.map(instance => `
+                        <div class="instance-item">
+                            <div class="instance-id">
+                                ${instance.instance_id}
+                                <span class="instance-status status-${instance.status}">${instance.status}</span>
+                            </div>
+                            <div class="instance-info">
+                                <div>主机: ${instance.hostname}</div>
+                                <div>PID: ${instance.pid}</div>
+                                <div>启动时间: ${new Date(instance.start_time).toLocaleString('zh-CN')}</div>
+                                <div>最后心跳: ${new Date(instance.last_heartbeat).toLocaleString('zh-CN')}</div>
+                                <div>任务: ${instance.tasks.join(', ')}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    instanceList.innerHTML = html;
+                } else {
+                    instanceList.innerHTML = '<div class="loading">暂无实例</div>';
+                }
+            } catch (error) {
+                document.getElementById('instanceList').innerHTML = '<div class="error">加载实例失败</div>';
+                console.error('加载实例失败:', error);
+            }
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshData();
+            
+            // 每30秒自动刷新
+            setInterval(refreshData, 30000);
+        });
+    </script>
+</body>
+</html> 

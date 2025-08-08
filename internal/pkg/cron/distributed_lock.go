@@ -38,10 +38,22 @@ func (dl *DistributedLock) TryAcquireLock(ctx context.Context, lockKey, instance
 			"ttl":         ttl.String(),
 		})
 	} else {
-		appLogger.Debug("分布式锁获取失败，已被其他实例持有", map[string]interface{}{
-			"lock_key":    lockKey,
-			"instance_id": instanceID,
-		})
+		// 获取当前持有锁的实例ID
+		currentHolder, err := dl.redis.Client().Get(ctx, key).Result()
+		if err != nil {
+			appLogger.Warn("分布式锁获取失败，无法获取当前持有者", map[string]interface{}{
+				"lock_key":    lockKey,
+				"instance_id": instanceID,
+				"error":       err.Error(),
+			})
+		} else {
+			appLogger.Info("分布式锁获取失败，已被其他实例持有", map[string]interface{}{
+				"lock_key":       lockKey,
+				"instance_id":    instanceID,
+				"current_holder": currentHolder,
+				"ttl":            ttl.String(),
+			})
+		}
 	}
 
 	return success, nil
@@ -100,7 +112,7 @@ func (dl *DistributedLock) RenewLock(ctx context.Context, lockKey, instanceID st
 
 	success := result.(int64) == 1
 	if success {
-		appLogger.Debug("分布式锁续期成功", map[string]interface{}{
+		appLogger.Info("分布式锁续期成功", map[string]interface{}{
 			"lock_key":    lockKey,
 			"instance_id": instanceID,
 			"ttl":         ttl.String(),

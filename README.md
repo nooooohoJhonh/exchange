@@ -24,7 +24,7 @@
   - MongoDB 6.0+ (消息存储)
 - **认证**: JWT (JSON Web Tokens)
 - **实时通信**: Gorilla WebSocket
-- **定时任务**: github.com/robfig/cron/v3
+- **定时任务**: github.com/go-co-op/gocron
 - **国际化**: github.com/nicksnyder/go-i18n/v2
 - **日志**: lumberjack.v2 (日志轮转)
 - **密码加密**: bcrypt
@@ -196,9 +196,10 @@ make lint
 
 ### 分布式定时任务
 
-项目集成了基于 Redis 的分布式定时任务系统，支持：
+项目集成了基于 Redis 的分布式定时任务系统，使用 go-co-op/gocron 作为调度引擎，支持：
 
 - **分布式执行**: 多实例部署，避免重复执行
+- **灵活调度**: 支持秒、分钟、小时、天级别的调度，以及每天特定时间执行
 - **任务监控**: 实时监控任务执行状态
 - **Web管理界面**: 可视化任务管理界面
 - **任务统计**: 详细的执行统计信息
@@ -221,7 +222,6 @@ package task
 import (
     "context"
     "exchange/internal/pkg/services"
-    "exchange/internal/utils"
     "fmt"
 )
 
@@ -235,10 +235,6 @@ func (t MyCustomTask) Description() string {
     return "我的自定义任务"
 }
 
-func (t MyCustomTask) Schedule() string {
-    return utils.EveryMinutes(5) // 每5分钟执行一次
-}
-
 func (t MyCustomTask) Run(ctx context.Context, globalServices *services.GlobalServices) error {
     // 任务逻辑
     fmt.Println("执行自定义任务...")
@@ -248,13 +244,51 @@ func (t MyCustomTask) Run(ctx context.Context, globalServices *services.GlobalSe
 
 ### 任务注册
 
-在 `cmd/cron/main.go` 中注册任务：
+在 `cmd/cron/main.go` 中注册任务，支持灵活的调度方式：
 
 ```go
-// 注册任务
-manager.RegisterTask(task.ExampleTask{})
-manager.RegisterTask(task.ExampleTask2{})
-manager.RegisterTask(task.MyCustomTask{})
+// 间隔调度
+manager.RegisterTaskEverySeconds(task.ExampleTask{}, 30)  // 每30秒执行
+manager.RegisterTaskEveryMinutes(task.ExampleTask2{}, 1)  // 每1分钟执行
+manager.RegisterTaskEveryHours(task.MyCustomTask{}, 2)    // 每2小时执行
+manager.RegisterTaskEveryDays(task.CleanupTask{}, 1)      // 每1天执行
+
+// 每天特定时间调度
+manager.RegisterTaskDailyAt(task.ExampleTask3{}, "01:30") // 每天01:30执行
+manager.RegisterTaskDailyAt(task.BackupTask{}, "02:00")   // 每天02:00执行
+manager.RegisterTaskDailyAt(task.ReportTask{}, "09:00")   // 每天09:00执行
+
+// 自定义间隔
+manager.RegisterTaskWithInterval(task.MyTask{}, 45*time.Second)
+```
+
+### 调度方式对比
+
+| 调度方式 | 示例 | 说明 |
+|---------|------|------|
+| `RegisterTaskEverySeconds` | `RegisterTaskEverySeconds(task, 30)` | 每30秒执行一次 |
+| `RegisterTaskEveryMinutes` | `RegisterTaskEveryMinutes(task, 5)` | 每5分钟执行一次 |
+| `RegisterTaskEveryHours` | `RegisterTaskEveryHours(task, 2)` | 每2小时执行一次 |
+| `RegisterTaskEveryDays` | `RegisterTaskEveryDays(task, 1)` | 每1天执行一次 |
+| `RegisterTaskDailyAt` | `RegisterTaskDailyAt(task, "01:30")` | 每天01:30执行一次 |
+| `RegisterTaskWithInterval` | `RegisterTaskWithInterval(task, 45*time.Second)` | 自定义间隔 |
+
+### 技术实现
+
+重构后的系统使用 `go-co-op/gocron` 作为核心调度引擎：
+
+```go
+// 创建调度器
+scheduler := gocron.NewScheduler(time.Local)
+
+// 间隔调度
+scheduler.Every(30).Seconds().Do(task)
+
+// 每天特定时间调度
+scheduler.Every(1).Day().At("01:30").Do(task)
+
+// 启动调度器
+scheduler.StartAsync()
 ```
 
 ## 📊 日志系统
