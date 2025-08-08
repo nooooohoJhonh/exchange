@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +54,7 @@ func (s *GinServer) Start() error {
 	}
 
 	// 启动服务器
-	logger.Info("Starting HTTP server", map[string]interface{}{
+	logger.Info("启动HTTP服务器", map[string]interface{}{
 		"address": fmt.Sprintf(":%d", s.config.Server.Port),
 		"mode":    s.config.Server.Mode,
 	})
@@ -65,40 +62,24 @@ func (s *GinServer) Start() error {
 	// 检查端口是否被占用
 	listener, err := net.Listen("tcp", s.httpServer.Addr)
 	if err != nil {
-		logger.Error("Port is already in use", map[string]interface{}{
+		logger.Error("端口已被占用", map[string]interface{}{
 			"port":  s.config.Server.Port,
 			"error": err.Error(),
 		})
-		return fmt.Errorf("port %d is already in use: %w", s.config.Server.Port, err)
+		return fmt.Errorf("端口 %d 已被占用: %w", s.config.Server.Port, err)
 	}
 	listener.Close()
 
-	// 在goroutine中启动服务器
-	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server failed to start", map[string]interface{}{
-				"error": err.Error(),
-				"port":  s.config.Server.Port,
-			})
-		}
-	}()
+	// 启动HTTP服务器
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Error("HTTP服务器启动失败", map[string]interface{}{
+			"error": err.Error(),
+			"port":  s.config.Server.Port,
+		})
+		return err
+	}
 
-	// 等待中断信号
-	return s.waitForShutdown()
-}
-
-// waitForShutdown 等待关闭信号
-func (s *GinServer) waitForShutdown() error {
-	// 创建信号通道
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	// 等待信号
-	<-quit
-	logger.Info("Shutting down server...", nil)
-
-	// 优雅关闭
-	return s.Shutdown()
+	return nil
 }
 
 // Shutdown 优雅关闭服务器
@@ -110,14 +91,14 @@ func (s *GinServer) Shutdown() error {
 	// 关闭HTTP服务器
 	if s.httpServer != nil {
 		if err := s.httpServer.Shutdown(ctx); err != nil {
-			logger.Error("HTTP server forced to shutdown", map[string]interface{}{
+			logger.Error("HTTP服务器强制关闭", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return err
 		}
 	}
 
-	logger.Info("Server shutdown complete", nil)
+	logger.Info("服务器关闭完成", nil)
 	return nil
 }
 

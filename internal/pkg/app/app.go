@@ -91,7 +91,7 @@ func (app *Application) Start() error {
 func (app *Application) Shutdown() error {
 	// 关闭日志系统
 	if err := logger.Close(); err != nil {
-		logger.Error("Failed to close logger", map[string]interface{}{
+		logger.Error("关闭日志系统失败", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -99,10 +99,18 @@ func (app *Application) Shutdown() error {
 	// 关闭模块管理器
 	if app.moduleManager != nil {
 		if err := app.moduleManager.Shutdown(); err != nil {
-			logger.Error("Failed to shutdown module manager", map[string]interface{}{
+			logger.Error("关闭模块管理器失败", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}
+	}
+
+	// 关闭全局服务（数据库连接等）
+	globalServices := services.GetGlobalServices()
+	if err := globalServices.Close(); err != nil {
+		logger.Error("关闭全局服务失败", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
 	// 关闭服务器
