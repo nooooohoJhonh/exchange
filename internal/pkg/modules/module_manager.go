@@ -13,6 +13,7 @@ import (
 	"exchange/internal/pkg/database"
 	"exchange/internal/pkg/i18n"
 	"exchange/internal/pkg/logger"
+	"exchange/internal/pkg/services"
 )
 
 // ModuleManager 模块管理器 - 负责管理整个应用的所有模块
@@ -45,18 +46,53 @@ func NewModuleManager(cfg *config.Config) *ModuleManager {
 	}
 }
 
+// NewModuleManagerWithServices 创建模块管理器（使用预初始化的数据库服务）
+// 参数说明：
+// - cfg: 应用配置
+// - mysql: 预初始化的MySQL服务
+// - redis: 预初始化的Redis服务
+// - mongodb: 预初始化的MongoDB服务
+func NewModuleManagerWithServices(
+	cfg *config.Config,
+	mysql *database.MySQLService,
+	redis *database.RedisService,
+	mongodb *database.MongoDBService,
+) *ModuleManager {
+	return &ModuleManager{
+		config:  cfg,
+		mysql:   mysql,
+		redis:   redis,
+		mongodb: mongodb,
+	}
+}
+
 // Initialize 初始化模块管理器
-// 初始化流程：
-// 1. 初始化数据库连接
-// 2. 初始化国际化
-// 3. 初始化API模块（独立管理自己的logic和repository）
-// 4. 初始化Admin模块（独立管理自己的logic和repository）
 func (m *ModuleManager) Initialize() error {
 	logger.Info("开始初始化模块管理器...", nil)
 
-	// 第一步：初始化数据库连接
-	if err := m.initDatabases(); err != nil {
-		return fmt.Errorf("数据库初始化失败: %w", err)
+	// 第一步：检查是否已提供数据库服务，如果没有则使用全局服务
+	if m.mysql == nil || m.redis == nil || m.mongodb == nil {
+		// 使用全局服务
+		globalServices := services.GetGlobalServices()
+
+		// 检查全局服务是否已初始化
+		if !globalServices.IsInitialized() {
+			return fmt.Errorf("全局服务未初始化，请先调用 globalServices.Init()")
+		}
+
+		// 从全局服务获取数据库连接
+		m.mysql = globalServices.GetMySQL()
+		m.redis = globalServices.GetRedis()
+		m.mongodb = globalServices.GetMongoDB()
+
+		// 检查服务是否可用
+		if m.mysql == nil || m.redis == nil || m.mongodb == nil {
+			return fmt.Errorf("从全局服务获取数据库连接失败")
+		}
+
+		logger.Info("使用全局服务的数据库连接", nil)
+	} else {
+		logger.Info("使用预初始化的数据库服务", nil)
 	}
 
 	// 第二步：初始化国际化
@@ -75,32 +111,6 @@ func (m *ModuleManager) Initialize() error {
 	}
 
 	logger.Info("模块管理器初始化完成", nil)
-	return nil
-}
-
-// initDatabases 初始化数据库连接
-func (m *ModuleManager) initDatabases() error {
-	var err error
-
-	// 初始化MySQL数据库
-	m.mysql, err = database.NewMySQLService(m.config)
-	if err != nil {
-		return fmt.Errorf("MySQL初始化失败: %w", err)
-	}
-
-	// 初始化Redis缓存
-	m.redis, err = database.NewRedisService(m.config)
-	if err != nil {
-		return fmt.Errorf("Redis初始化失败: %w", err)
-	}
-
-	// MongoDB暂时不启用
-	// m.mongodb, err = database.NewMongoDBService(m.config)
-	// if err != nil {
-	// 	return fmt.Errorf("MongoDB初始化失败: %w", err)
-	// }
-
-	logger.Info("所有数据库连接初始化成功", nil)
 	return nil
 }
 
@@ -168,30 +178,8 @@ func (m *ModuleManager) SetupRoutes(engine *gin.Engine) {
 
 // Shutdown 关闭模块管理器
 func (m *ModuleManager) Shutdown() error {
-	// 关闭数据库连接
-	if m.mysql != nil {
-		if err := m.mysql.Close(); err != nil {
-			logger.Error("MySQL连接关闭失败", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-	}
-
-	if m.redis != nil {
-		if err := m.redis.Close(); err != nil {
-			logger.Error("Redis连接关闭失败", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-	}
-
-	if m.mongodb != nil {
-		if err := m.mongodb.Close(); err != nil {
-			logger.Error("MongoDB连接关闭失败", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
-	}
+	// 注意：不关闭数据库连接，因为由全局服务管理
+	// 只关闭模块相关的资源
 
 	logger.Info("模块管理器关闭完成", nil)
 	return nil

@@ -42,6 +42,7 @@
     "log_dir": "logs",
     "access_log_file": "access.log",
     "error_log_file": "error.log",
+    "cron_log_file": "cron.log",
     "enable_console": true,
     "enable_file": true
   }

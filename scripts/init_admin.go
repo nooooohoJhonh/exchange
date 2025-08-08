@@ -7,23 +7,24 @@ import (
 	"os"
 
 	"exchange/internal/models/mysql"
-	"exchange/internal/pkg/config"
-	"exchange/internal/pkg/database"
+	"exchange/internal/pkg/services"
 )
 
 func main() {
-	// 加载配置
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	// 使用全局服务
+	globalServices := services.GetGlobalServices()
 
-	// 初始化MySQL连接
-	mysqlService, err := database.NewMySQLService(cfg)
-	if err != nil {
-		log.Fatalf("Failed to connect to MySQL: %v", err)
+	// 初始化全局服务
+	if err := globalServices.Init(); err != nil {
+		log.Fatalf("Failed to initialize global services: %v", err)
 	}
-	defer mysqlService.Close()
+	defer globalServices.Close()
+
+	// 获取MySQL服务
+	mysqlService := globalServices.GetMySQL()
+	if mysqlService == nil {
+		log.Fatalf("MySQL service not available")
+	}
 
 	// 获取数据库实例
 	db := mysqlService.DB()

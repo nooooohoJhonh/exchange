@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"exchange/internal/pkg/services"
 	"exchange/internal/utils"
 	"fmt"
 )
@@ -21,7 +22,8 @@ func (e ExampleTask2) Schedule() string {
 	return utils.EveryMinutes(1) // 每分钟
 }
 
-func (e ExampleTask2) Run(ctx context.Context) error {
+// Run 任务执行方法
+func (e ExampleTask2) Run(ctx context.Context, globalServices *services.GlobalServices) error {
 	fmt.Println("执行示例任务逻辑...")
 	// 模拟执行任务逻辑
 	return nil

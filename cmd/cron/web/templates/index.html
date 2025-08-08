@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.title}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #333;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status-item .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .status-item .value {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+        
+        .status-item .value.success { color: #10b981; }
+        .status-item .value.warning { color: #f59e0b; }
+        .status-item .value.error { color: #ef4444; }
+        .status-item .value.info { color: #3b82f6; }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #1f2937;
+            border-bottom: 3px solid #e5e7eb;
+            padding-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .task-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .task-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .task-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+            border-color: #3b82f6;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
+        .task-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+        
+        .task-description {
+            color: #6b7280;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .task-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .meta-item .label {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 0.85em;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .meta-item .value {
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .task-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-item .value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #1f2937;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .stat-item .label {
+            font-size: 0.8em;
+            color: #6b7280;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.2;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+        }
+        
+        .btn.secondary:hover {
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn.danger:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* 全局loading状态 */
+        .global-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        
+        .global-loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .global-loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e5e7eb;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        
+        .global-loading .text {
+            font-size: 1.2em;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+            font-style: italic;
+            font-size: 1.1em;
+        }
+        
+        .error {
+            color: #ef4444;
+            font-weight: 600;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .success {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .warning {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        
+        .info {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+        
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state p {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state .subtitle {
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+        
+        .instance-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .instance-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .instance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        
+        .instance-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        
+        .instance-header {
+            margin-bottom: 20px;
+        }
+        
+        .instance-id {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        .instance-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .instance-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .instance-tasks {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .instance-tasks .label {
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        
+        .instance-tasks .tasks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .task-tag {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .notification.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .status-bar {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .instance-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .task-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .task-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 全局loading状态 -->
+        <div id="globalLoading" class="global-loading">
+            <div class="spinner"></div>
+            <div class="text">正在加载数据...</div>
+        </div>
+        
+        <div class="header">
+            <h1>{{.title}}</h1>
+            <div class="subtitle">分布式定时任务管理系统 - 实时监控与控制</div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="label">系统状态</div>
+                <div id="systemStatus" class="value success">运行中</div>
+            </div>
+            <div class="status-item">
+                <div class="label">活跃实例</div>
+                <div id="instanceCount" class="value info">0</div>
+            </div>
+            <div class="status-item">
+                <div class="label">任务数量</div>
+                <div id="taskCount" class="value info">0</div>
+            </div>
+            <div class="status-item">
+                <div class="label">最后更新</div>
+                <div id="lastUpdate" class="value">-</div>
+            </div>
+            <button class="refresh-btn" onclick="refreshData()">
+                🔄 刷新数据
+            </button>
+        </div>
+        
+        <div class="main-content">
+            <div class="section">
+                <h2>📋 任务列表</h2>
+                <div id="tasks">
+                    <div class="empty-state">
+                        <div class="icon">📝</div>
+                        <p>暂无任务</p>
+                        <div class="subtitle">当前没有注册的定时任务</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🖥️ 实例信息</h2>
+                <div id="instances">
+                    <div class="empty-state">
+                        <div class="icon">🖥️</div>
+                        <p>暂无活跃实例</p>
+                        <div class="subtitle">当前没有运行中的任务执行实例</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📊 任务统计</h2>
+                <div id="taskStats">
+                    <div class="empty-state">
+                        <div class="icon">📊</div>
+                        <p>暂无任务统计信息</p>
+                        <div class="subtitle">当前没有可用的任务统计数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let lastUpdateTime = new Date();
+        let isRefreshing = false;
+        
+        // 格式化时间显示
+        function formatTime(timeStr) {
+            if (!timeStr || timeStr === '从未运行' || timeStr === '未知') {
+                return timeStr;
+            }
+            
+            // 检查是否是无效时间（如 0001-01-01）
+            if (timeStr.includes('0001-01-01')) {
+                return '';
+            }
+            
+            try {
+                // 解析时间字符串
+                const date = new Date(timeStr);
+                
+                // 检查是否是有效日期
+                if (isNaN(date.getTime())) {
+                    return '';
+                }
+                
+                // 格式化为 Y-m-d H:i:s
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            } catch (error) {
+                console.error('时间格式化错误:', error);
+                return '';
+            }
+        }
+        
+        // 显示/隐藏全局loading
+        function showGlobalLoading(text = '正在加载数据...') {
+            const loading = document.getElementById('globalLoading');
+            loading.querySelector('.text').textContent = text;
+            loading.classList.remove('hidden');
+        }
+        
+        function hideGlobalLoading() {
+            const loading = document.getElementById('globalLoading');
+            loading.classList.add('hidden');
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 刷新所有数据
+        async function refreshData() {
+            if (isRefreshing) return;
+            
+            isRefreshing = true;
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 刷新中...';
+            
+            try {
+                showGlobalLoading('正在刷新数据...');
+                await Promise.all([
+                    loadStatus(),
+                    loadTasks(),
+                    loadInstances(),
+                    loadTaskStats()
+                ]);
+                updateLastUpdate();
+                showNotification('数据刷新成功', 'success');
+            } catch (error) {
+                showNotification('数据刷新失败: ' + error.message, 'error');
+            } finally {
+                isRefreshing = false;
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 刷新数据';
+                hideGlobalLoading();
+            }
+        }
+        
+        // 更新最后更新时间
+        function updateLastUpdate() {
+            lastUpdateTime = new Date();
+            document.getElementById('lastUpdate').textContent = lastUpdateTime.toLocaleTimeString();
+        }
+
+        // 加载服务状态
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/cron/status');
+                const data = await response.json();
+                
+                document.getElementById('systemStatus').textContent = data.status;
+                document.getElementById('instanceCount').textContent = data.instance_count;
+                document.getElementById('taskCount').textContent = data.active_tasks;
+                
+                // 更新状态颜色
+                const statusElement = document.getElementById('systemStatus');
+                statusElement.className = 'value success';
+                
+            } catch (error) {
+                document.getElementById('systemStatus').textContent = '错误';
+                document.getElementById('systemStatus').className = 'value error';
+                throw error;
+            }
+        }
+
+        // 加载任务列表
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/cron/tasks');
+                const data = await response.json();
+                
+                const tasksDiv = document.getElementById('tasks');
+                if (data.tasks && data.tasks.length > 0) {
+                    let html = '<div class="task-grid">';
+                    data.tasks.forEach(task => {
+                        html += `
+                            <div class="task-card">
+                                <div class="task-header">
+                                    <div>
+                                        <div class="task-title">${task.name}</div>
+                                        <div class="task-description">${task.description}</div>
+                                    </div>
+                                </div>
+                                <div class="task-meta">
+                                    <div class="meta-item">
+                                        <span class="label">调度表达式</span>
+                                        <span class="value">${task.schedule}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="label">执行实例</span>
+                                        <span class="value">${task.instances ? task.instances.join(', ') : '未知'}</span>
+                                    </div>
+                                </div>
+                                <div class="task-stats">
+                                    <div class="stat-item">
+                                        <span class="value" id="success_${task.name}">-</span>
+                                        <span class="label">成功次数</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="value" id="failure_${task.name}">-</span>
+                                        <span class="label">失败次数</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="value" id="lastRun_${task.name}">-</span>
+                                        <span class="label">最后运行</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="value" id="nextRun_${task.name}">-</span>
+                                        <span class="label">下次运行</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="btn secondary" onclick="viewHistory('${task.name}')">
+                                        📋 执行历史
+                                    </button>
+                                    <button class="btn secondary" onclick="viewDetails('${task.name}')">
+                                        🔍 详细信息
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    tasksDiv.innerHTML = html;
+                    
+                    // 加载每个任务的统计信息
+                    for (const task of data.tasks) {
+                        await loadTaskStatsForDisplay(task.name);
+                    }
+                } else {
+                    tasksDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📝</div>
+                            <p>暂无任务</p>
+                            <div class="subtitle">当前没有注册的定时任务</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('tasks').innerHTML = `
+                    <div class="error">加载任务列表失败: ${error.message}</div>
+                `;
+                throw error;
+            }
+        }
+
+        // 加载实例信息
+        async function loadInstances() {
+            try {
+                const response = await fetch('/api/cron/instances');
+                const data = await response.json();
+                
+                const instancesDiv = document.getElementById('instances');
+                if (data.instances && data.instances.length > 0) {
+                    let html = '<div class="instance-list">';
+                    data.instances.forEach(instance => {
+                        html += `
+                            <div class="instance-card">
+                                <div class="instance-header">
+                                    <div class="instance-id">${instance.instance_id}</div>
+                                    <span class="instance-status">${instance.status}</span>
+                                </div>
+                                <div class="instance-meta">
+                                    <div class="meta-item">
+                                        <span class="label">主机名</span>
+                                        <span class="value">${instance.hostname}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="label">进程ID</span>
+                                        <span class="value">${instance.pid}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="label">版本</span>
+                                        <span class="value">${instance.version}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="label">注册时间</span>
+                                        <span class="value">${instance.registered_at || '未知'}</span>
+                                    </div>
+                                </div>
+                                <div class="instance-tasks">
+                                    <div class="label">执行任务</div>
+                                    <div class="tasks">
+                                        ${instance.tasks.map(task => `<span class="task-tag">${task}</span>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    instancesDiv.innerHTML = html;
+                } else {
+                    instancesDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🖥️</div>
+                            <p>暂无活跃实例</p>
+                            <div class="subtitle">当前没有运行中的任务执行实例</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('instances').innerHTML = `
+                    <div class="error">加载实例信息失败: ${error.message}</div>
+                `;
+                throw error;
+            }
+        }
+
+        // 加载任务统计（用于显示在任务列表中）
+        async function loadTaskStatsForDisplay(taskName) {
+            try {
+                const response = await fetch(`/api/cron/tasks/${taskName}/stats`);
+                const data = await response.json();
+                
+                const successElement = document.getElementById(`success_${taskName}`);
+                const failureElement = document.getElementById(`failure_${taskName}`);
+                const lastRunElement = document.getElementById(`lastRun_${taskName}`);
+                const nextRunElement = document.getElementById(`nextRun_${taskName}`);
+                
+                if (successElement) {
+                    successElement.textContent = data.stats.success_count || 0;
+                }
+                if (failureElement) {
+                    failureElement.textContent = data.stats.failure_count || 0;
+                }
+                if (lastRunElement) {
+                    const formattedLastRun = formatTime(data.stats.last_run_at);
+                    lastRunElement.textContent = formattedLastRun || '从未运行';
+                }
+                if (nextRunElement) {
+                    const formattedNextRun = formatTime(data.stats.next_run_at);
+                    nextRunElement.textContent = formattedNextRun || '未知';
+                }
+            } catch (error) {
+                console.error(`加载任务 ${taskName} 统计失败:`, error);
+            }
+        }
+
+        // 加载任务统计（独立页面）
+        async function loadTaskStats() {
+            try {
+                const tasksResponse = await fetch('/api/cron/tasks');
+                const tasksData = await tasksResponse.json();
+                
+                const taskStatsDiv = document.getElementById('taskStats');
+                if (tasksData.tasks && tasksData.tasks.length > 0) {
+                    let html = '<div class="task-grid">';
+                    for (const task of tasksData.tasks) {
+                        try {
+                            const response = await fetch(`/api/cron/tasks/${task.name}/stats`);
+                            const data = await response.json();
+                            
+                            const formattedLastRun = formatTime(data.stats.last_run_at);
+                            const formattedNextRun = formatTime(data.stats.next_run_at);
+                            
+                            html += `
+                                <div class="task-card">
+                                    <div class="task-header">
+                                        <div>
+                                            <div class="task-title">${task.name}</div>
+                                            <div class="task-description">统计信息</div>
+                                        </div>
+                                    </div>
+                                    <div class="task-stats">
+                                        <div class="stat-item">
+                                            <span class="value">${data.stats.success_count || 0}</span>
+                                            <span class="label">成功次数</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="value">${data.stats.failure_count || 0}</span>
+                                            <span class="label">失败次数</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="value">${formattedLastRun || '从未运行'}</span>
+                                            <span class="label">最后运行</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="value">${formattedNextRun || '未知'}</span>
+                                            <span class="label">下次运行</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } catch (error) {
+                            html += `
+                                <div class="task-card">
+                                    <div class="task-header">
+                                        <div>
+                                            <div class="task-title">${task.name}</div>
+                                            <div class="task-description">统计信息</div>
+                                        </div>
+                                    </div>
+                                    <div class="error">获取统计信息失败</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    html += '</div>';
+                    taskStatsDiv.innerHTML = html;
+                } else {
+                    taskStatsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📊</div>
+                            <p>暂无任务统计信息</p>
+                            <div class="subtitle">当前没有可用的任务统计数据</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('taskStats').innerHTML = `
+                    <div class="error">加载任务统计失败: ${error.message}</div>
+                `;
+                throw error;
+            }
+        }
+
+        // 查看任务历史
+        async function viewHistory(taskName) {
+            try {
+                const response = await fetch(`/api/cron/tasks/${taskName}/history`);
+                const data = await response.json();
+                
+                let historyText = `任务: ${taskName}\n\n`;
+                if (data.history && data.history.length > 0) {
+                    data.history.forEach((record, index) => {
+                        const formattedTime = formatTime(record.started_at);
+                        historyText += `${index + 1}. 执行时间: ${formattedTime}\n`;
+                        historyText += `   状态: ${record.status}\n`;
+                        historyText += `   耗时: ${record.duration}\n`;
+                        historyText += `   实例: ${record.instance_id}\n\n`;
+                    });
+                } else {
+                    historyText += "暂无执行历史";
+                }
+                
+                alert(historyText);
+            } catch (error) {
+                showNotification(`❌ 获取历史记录失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 查看任务详细信息
+        async function viewDetails(taskName) {
+            try {
+                const [statsResponse, historyResponse] = await Promise.all([
+                    fetch(`/api/cron/tasks/${taskName}/stats`),
+                    fetch(`/api/cron/tasks/${taskName}/history`)
+                ]);
+                
+                const statsData = await statsResponse.json();
+                const historyData = await historyResponse.json();
+                
+                const formattedLastRun = formatTime(statsData.stats.last_run_at);
+                const formattedNextRun = formatTime(statsData.stats.next_run_at);
+                
+                let detailsText = `任务详细信息: ${taskName}\n\n`;
+                detailsText += `统计信息:\n`;
+                detailsText += `- 成功次数: ${statsData.stats.success_count || 0}\n`;
+                detailsText += `- 失败次数: ${statsData.stats.failure_count || 0}\n`;
+                detailsText += `- 最后运行: ${formattedLastRun || '从未运行'}\n`;
+                detailsText += `- 下次运行: ${formattedNextRun || '未知'}\n\n`;
+                
+                detailsText += `最近执行历史:\n`;
+                if (historyData.history && historyData.history.length > 0) {
+                    historyData.history.slice(0, 5).forEach((record, index) => {
+                        const formattedTime = formatTime(record.started_at);
+                        detailsText += `${index + 1}. ${formattedTime} - ${record.status} (${record.duration})\n`;
+                    });
+                } else {
+                    detailsText += "暂无执行历史";
+                }
+                
+                alert(detailsText);
+            } catch (error) {
+                showNotification(`❌ 获取详细信息失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动刷新数据
+        window.onload = function() {
+            showGlobalLoading('正在初始化...');
+            refreshData();
+            // 每30秒自动刷新一次
+            setInterval(refreshData, 30000);
+        };
+    </script>
+</body>
+</html> 

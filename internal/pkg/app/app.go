@@ -7,6 +7,7 @@ import (
 	"exchange/internal/pkg/logger"
 	"exchange/internal/pkg/modules"
 	"exchange/internal/pkg/server"
+	"exchange/internal/pkg/services"
 )
 
 // Application 应用程序结构
@@ -56,7 +57,25 @@ func (app *Application) initializeLogger() error {
 
 // initializeModuleManager 初始化模块管理器
 func (app *Application) initializeModuleManager() error {
-	app.moduleManager = modules.NewModuleManager(app.config)
+	// 使用全局服务中的数据库连接
+	globalServices := services.GetGlobalServices()
+
+	// 检查全局服务是否已初始化
+	if !globalServices.IsInitialized() {
+		return fmt.Errorf("global services not initialized")
+	}
+
+	// 获取数据库服务
+	mysqlService := globalServices.GetMySQL()
+	redisService := globalServices.GetRedis()
+	mongoService := globalServices.GetMongoDB()
+
+	if mysqlService == nil || redisService == nil || mongoService == nil {
+		return fmt.Errorf("database services not available")
+	}
+
+	// 创建模块管理器，传入全局服务
+	app.moduleManager = modules.NewModuleManagerWithServices(app.config, mysqlService, redisService, mongoService)
 	return app.moduleManager.Initialize()
 }
 

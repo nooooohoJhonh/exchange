@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"exchange/internal/pkg/app"
-	"exchange/internal/pkg/config"
 	appLogger "exchange/internal/pkg/logger"
+	"exchange/internal/pkg/services"
 )
 
 var (
@@ -30,12 +30,15 @@ func main() {
 		os.Exit(0)
 	}
 
-	// 加载配置
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("Failed to load configuration: %v\n", err)
+	// 初始化全局服务
+	globalServices := services.GetGlobalServices()
+	if err := globalServices.Init(); err != nil {
+		fmt.Printf("Failed to initialize global services: %v\n", err)
 		os.Exit(1)
 	}
+
+	// 获取配置
+	cfg := globalServices.GetConfig()
 
 	// 初始化应用程序（包括日志、数据库等基础设施）
 	application, err := app.InitializeApplication(cfg)

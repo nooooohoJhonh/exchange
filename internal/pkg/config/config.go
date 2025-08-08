@@ -20,11 +20,11 @@ type Config struct {
 
 // ServerConfig HTTP服务器配置
 type ServerConfig struct {
-	Address     string `json:"address"`
-	Port        int    `json:"port"`
-	Mode        string `json:"mode"` // debug, release, test
-	ReadTimeout int    `json:"read_timeout"`
-	WriteTimeout int   `json:"write_timeout"`
+	Address      string `json:"address"`
+	Port         int    `json:"port"`
+	Mode         string `json:"mode"` // debug, release, test
+	ReadTimeout  int    `json:"read_timeout"`
+	WriteTimeout int    `json:"write_timeout"`
 }
 
 // DatabaseConfig MySQL数据库配置
@@ -65,44 +65,45 @@ type JWTConfig struct {
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level          string `json:"level"`
-	Format         string `json:"format"`          // json, text
-	Output         string `json:"output"`          // stdout, file, both
-	Filename       string `json:"filename"`
-	MaxSize        int    `json:"max_size"`        // 单个日志文件最大大小(MB)
-	MaxAge         int    `json:"max_age"`         // 日志文件保留天数
-	MaxBackups     int    `json:"max_backups"`     // 保留的旧日志文件数量
-	Compress       bool   `json:"compress"`        // 是否压缩旧日志文件
-	LocalTime      bool   `json:"local_time"`      // 是否使用本地时间
-	RotateDaily    bool   `json:"rotate_daily"`    // 是否按天轮转
-	EnableConsole  bool   `json:"enable_console"`  // 是否同时输出到控制台
-	EnableFile     bool   `json:"enable_file"`     // 是否输出到文件
-	LogDir         string `json:"log_dir"`         // 日志目录
-	AccessLogFile  string `json:"access_log_file"` // 访问日志文件名
-	ErrorLogFile   string `json:"error_log_file"`  // 错误日志文件名
+	Level         string `json:"level"`
+	Format        string `json:"format"` // json, text
+	Output        string `json:"output"` // stdout, file, both
+	Filename      string `json:"filename"`
+	MaxSize       int    `json:"max_size"`        // 单个日志文件最大大小(MB)
+	MaxAge        int    `json:"max_age"`         // 日志文件保留天数
+	MaxBackups    int    `json:"max_backups"`     // 保留的旧日志文件数量
+	Compress      bool   `json:"compress"`        // 是否压缩旧日志文件
+	LocalTime     bool   `json:"local_time"`      // 是否使用本地时间
+	RotateDaily   bool   `json:"rotate_daily"`    // 是否按天轮转
+	EnableConsole bool   `json:"enable_console"`  // 是否同时输出到控制台
+	EnableFile    bool   `json:"enable_file"`     // 是否输出到文件
+	LogDir        string `json:"log_dir"`         // 日志目录
+	AccessLogFile string `json:"access_log_file"` // 访问日志文件名
+	ErrorLogFile  string `json:"error_log_file"`  // 错误日志文件名
+	CronLogFile   string `json:"cron_log_file"`   // Cron服务日志文件名
 }
 
 // Load 加载配置
 func Load() (*Config, error) {
 	cfg := &Config{}
-	
+
 	// 设置默认配置
 	setDefaults(cfg)
-	
+
 	// 从配置文件加载
 	if err := loadFromFile(cfg); err != nil {
 		// 配置文件不存在时使用默认配置，但记录警告
 		fmt.Printf("Warning: Failed to load config file, using defaults: %v\n", err)
 	}
-	
+
 	// 从环境变量覆盖配置
 	loadFromEnv(cfg)
-	
+
 	// 验证配置
 	if err := validate(cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
-	
+
 	return cfg, nil
 }
 
@@ -115,7 +116,7 @@ func setDefaults(cfg *Config) {
 		ReadTimeout:  60,
 		WriteTimeout: 60,
 	}
-	
+
 	cfg.Database = DatabaseConfig{
 		Host:            "localhost",
 		Port:            3306,
@@ -127,7 +128,7 @@ func setDefaults(cfg *Config) {
 		MaxOpenConns:    100,
 		ConnMaxLifetime: 3600,
 	}
-	
+
 	cfg.Redis = RedisConfig{
 		Host:     "localhost",
 		Port:     6379,
@@ -135,19 +136,19 @@ func setDefaults(cfg *Config) {
 		Database: 0,
 		PoolSize: 10,
 	}
-	
+
 	cfg.MongoDB = MongoConfig{
 		URI:      "mongodb://localhost:27017",
 		Database: "go_platform",
 		Timeout:  10,
 	}
-	
+
 	cfg.JWT = JWTConfig{
 		SecretKey:       "your-secret-key-change-in-production",
 		ExpirationHours: 24,
 		Issuer:          "go-api-admin-im-platform",
 	}
-	
+
 	cfg.Log = LogConfig{
 		Level:         "info",
 		Format:        "json",
@@ -164,6 +165,7 @@ func setDefaults(cfg *Config) {
 		LogDir:        "logs",
 		AccessLogFile: "access.log",
 		ErrorLogFile:  "error.log",
+		CronLogFile:   "cron.log",
 	}
 }
 
@@ -173,14 +175,14 @@ func loadFromFile(cfg *Config) error {
 	if env == "" {
 		env = "development"
 	}
-	
+
 	filename := fmt.Sprintf("configs/%s.json", env)
-	
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal(data, cfg)
 }
 
@@ -199,7 +201,7 @@ func loadFromEnv(cfg *Config) {
 	if mode := os.Getenv("GIN_MODE"); mode != "" {
 		cfg.Server.Mode = mode
 	}
-	
+
 	// Database配置
 	if host := os.Getenv("DB_HOST"); host != "" {
 		cfg.Database.Host = host
@@ -218,7 +220,7 @@ func loadFromEnv(cfg *Config) {
 	if db := os.Getenv("DB_DATABASE"); db != "" {
 		cfg.Database.Database = db
 	}
-	
+
 	// Redis配置
 	if host := os.Getenv("REDIS_HOST"); host != "" {
 		cfg.Redis.Host = host
@@ -231,7 +233,7 @@ func loadFromEnv(cfg *Config) {
 	if pass := os.Getenv("REDIS_PASSWORD"); pass != "" {
 		cfg.Redis.Password = pass
 	}
-	
+
 	// MongoDB配置
 	if uri := os.Getenv("MONGO_URI"); uri != "" {
 		cfg.MongoDB.URI = uri
@@ -239,7 +241,7 @@ func loadFromEnv(cfg *Config) {
 	if db := os.Getenv("MONGO_DATABASE"); db != "" {
 		cfg.MongoDB.Database = db
 	}
-	
+
 	// JWT配置
 	if secret := os.Getenv("JWT_SECRET_KEY"); secret != "" {
 		cfg.JWT.SecretKey = secret
@@ -259,35 +261,35 @@ func validate(cfg *Config) error {
 	if cfg.Server.Port <= 0 || cfg.Server.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d", cfg.Server.Port)
 	}
-	
+
 	if cfg.Database.Host == "" {
 		return fmt.Errorf("database host is required")
 	}
-	
+
 	if cfg.Database.Username == "" {
 		return fmt.Errorf("database username is required")
 	}
-	
+
 	if cfg.Database.Database == "" {
 		return fmt.Errorf("database name is required")
 	}
-	
+
 	if cfg.JWT.SecretKey == "" || cfg.JWT.SecretKey == "your-secret-key-change-in-production" {
 		return fmt.Errorf("JWT secret key must be set and not use default value")
 	}
-	
+
 	if cfg.JWT.ExpirationHours <= 0 {
 		return fmt.Errorf("JWT expiration hours must be positive")
 	}
-	
+
 	if !contains([]string{"debug", "release", "test"}, cfg.Server.Mode) {
 		return fmt.Errorf("invalid server mode: %s", cfg.Server.Mode)
 	}
-	
+
 	if !contains([]string{"debug", "info", "warn", "error"}, cfg.Log.Level) {
 		return fmt.Errorf("invalid log level: %s", cfg.Log.Level)
 	}
-	
+
 	return nil
 }
 
