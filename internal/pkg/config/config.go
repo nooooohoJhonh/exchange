@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 )
 
 // Config 应用程序配置
@@ -22,7 +21,7 @@ type Config struct {
 type ServerConfig struct {
 	Address      string `json:"address"`
 	Port         int    `json:"port"`
-	Mode         string `json:"mode"` // debug, release, test
+	Mode         string `json:"mode"`
 	ReadTimeout  int    `json:"read_timeout"`
 	WriteTimeout int    `json:"write_timeout"`
 }
@@ -59,7 +58,7 @@ type MongoConfig struct {
 // JWTConfig JWT配置
 type JWTConfig struct {
 	SecretKey       string `json:"secret_key"`
-	ExpirationHours int    `json:"expiration_hours"` // 小时
+	ExpirationHours int    `json:"expiration_hours"`
 	Issuer          string `json:"issuer"`
 }
 
@@ -86,14 +85,11 @@ type LogConfig struct {
 // Load 加载配置
 func Load() (*Config, error) {
 	cfg := &Config{}
-
-	// 设置默认配置
 	setDefaults(cfg)
 
 	// 从配置文件加载
 	if err := loadFromFile(cfg); err != nil {
-		// 配置文件不存在时使用默认配置，但记录警告
-		fmt.Printf("Warning: Failed to load config file, using defaults: %v\n", err)
+		fmt.Printf("警告: 配置文件加载失败，使用默认配置: %v\n", err)
 	}
 
 	// 从环境变量覆盖配置
@@ -101,7 +97,7 @@ func Load() (*Config, error) {
 
 	// 验证配置
 	if err := validate(cfg); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+		return nil, fmt.Errorf("配置验证失败: %w", err)
 	}
 
 	return cfg, nil
@@ -109,76 +105,68 @@ func Load() (*Config, error) {
 
 // setDefaults 设置默认配置
 func setDefaults(cfg *Config) {
-	cfg.Server = ServerConfig{
-		Address:      ":8080",
-		Port:         8080,
-		Mode:         "debug",
-		ReadTimeout:  60,
-		WriteTimeout: 60,
-	}
+	// 服务器默认配置
+	cfg.Server.Address = "0.0.0.0"
+	cfg.Server.Port = 8080
+	cfg.Server.Mode = "debug"
+	cfg.Server.ReadTimeout = 30
+	cfg.Server.WriteTimeout = 30
 
-	cfg.Database = DatabaseConfig{
-		Host:            "localhost",
-		Port:            3306,
-		Username:        "root",
-		Password:        "",
-		Database:        "go_platform",
-		Charset:         "utf8mb4",
-		MaxIdleConns:    10,
-		MaxOpenConns:    100,
-		ConnMaxLifetime: 3600,
-	}
+	// 数据库默认配置
+	cfg.Database.Host = "localhost"
+	cfg.Database.Port = 3306
+	cfg.Database.Username = "root"
+	cfg.Database.Password = ""
+	cfg.Database.Database = "exchange"
+	cfg.Database.Charset = "utf8mb4"
+	cfg.Database.MaxIdleConns = 10
+	cfg.Database.MaxOpenConns = 100
+	cfg.Database.ConnMaxLifetime = 3600
 
-	cfg.Redis = RedisConfig{
-		Host:     "localhost",
-		Port:     6379,
-		Password: "",
-		Database: 0,
-		PoolSize: 10,
-	}
+	// Redis默认配置
+	cfg.Redis.Host = "localhost"
+	cfg.Redis.Port = 6379
+	cfg.Redis.Password = ""
+	cfg.Redis.Database = 0
+	cfg.Redis.PoolSize = 10
 
-	cfg.MongoDB = MongoConfig{
-		URI:      "mongodb://localhost:27017",
-		Database: "go_platform",
-		Timeout:  10,
-	}
+	// MongoDB默认配置
+	cfg.MongoDB.URI = "mongodb://localhost:27017"
+	cfg.MongoDB.Database = "exchange"
+	cfg.MongoDB.Timeout = 10
 
-	cfg.JWT = JWTConfig{
-		SecretKey:       "your-secret-key-change-in-production",
-		ExpirationHours: 24,
-		Issuer:          "go-api-admin-im-platform",
-	}
+	// JWT默认配置
+	cfg.JWT.SecretKey = "your-secret-key"
+	cfg.JWT.ExpirationHours = 24
+	cfg.JWT.Issuer = "exchange"
 
-	cfg.Log = LogConfig{
-		Level:         "info",
-		Format:        "json",
-		Output:        "both",
-		Filename:      "app.log",
-		MaxSize:       100,
-		MaxAge:        30,
-		MaxBackups:    10,
-		Compress:      true,
-		LocalTime:     true,
-		RotateDaily:   true,
-		EnableConsole: true,
-		EnableFile:    true,
-		LogDir:        "logs",
-		AccessLogFile: "access.log",
-		ErrorLogFile:  "error.log",
-		CronLogFile:   "cron.log",
-	}
+	// 日志默认配置
+	cfg.Log.Level = "info"
+	cfg.Log.Format = "json"
+	cfg.Log.Output = "both"
+	cfg.Log.Filename = "app.log"
+	cfg.Log.MaxSize = 100
+	cfg.Log.MaxAge = 30
+	cfg.Log.MaxBackups = 10
+	cfg.Log.Compress = true
+	cfg.Log.LocalTime = true
+	cfg.Log.RotateDaily = true
+	cfg.Log.EnableConsole = true
+	cfg.Log.EnableFile = true
+	cfg.Log.LogDir = "logs"
+	cfg.Log.AccessLogFile = "access.log"
+	cfg.Log.ErrorLogFile = "error.log"
+	cfg.Log.CronLogFile = "cron.log"
 }
 
 // loadFromFile 从配置文件加载
 func loadFromFile(cfg *Config) error {
-	env := os.Getenv("GO_ENV")
-	if env == "" {
-		env = "development"
+	configFile := "configs/development.json"
+	if os.Getenv("ENV") == "production" {
+		configFile = "configs/production.json"
 	}
 
-	filename := fmt.Sprintf("configs/%s.json", env)
-
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(configFile)
 	if err != nil {
 		return err
 	}
@@ -186,124 +174,100 @@ func loadFromFile(cfg *Config) error {
 	return json.Unmarshal(data, cfg)
 }
 
-// loadFromEnv 从环境变量加载配置
+// loadFromEnv 从环境变量加载
 func loadFromEnv(cfg *Config) {
-	// Server配置
-	if addr := os.Getenv("SERVER_ADDRESS"); addr != "" {
-		cfg.Server.Address = addr
+	// 服务器配置
+	if val := os.Getenv("SERVER_ADDRESS"); val != "" {
+		cfg.Server.Address = val
 	}
-	if port := os.Getenv("SERVER_PORT"); port != "" {
-		if p, err := strconv.Atoi(port); err == nil {
-			cfg.Server.Port = p
-			cfg.Server.Address = fmt.Sprintf(":%d", p)
+	if val := os.Getenv("SERVER_PORT"); val != "" {
+		if port, err := strconv.Atoi(val); err == nil {
+			cfg.Server.Port = port
 		}
 	}
-	if mode := os.Getenv("GIN_MODE"); mode != "" {
-		cfg.Server.Mode = mode
+	if val := os.Getenv("SERVER_MODE"); val != "" {
+		cfg.Server.Mode = val
 	}
 
-	// Database配置
-	if host := os.Getenv("DB_HOST"); host != "" {
-		cfg.Database.Host = host
+	// 数据库配置
+	if val := os.Getenv("DB_HOST"); val != "" {
+		cfg.Database.Host = val
 	}
-	if port := os.Getenv("DB_PORT"); port != "" {
-		if p, err := strconv.Atoi(port); err == nil {
-			cfg.Database.Port = p
+	if val := os.Getenv("DB_PORT"); val != "" {
+		if port, err := strconv.Atoi(val); err == nil {
+			cfg.Database.Port = port
 		}
 	}
-	if user := os.Getenv("DB_USERNAME"); user != "" {
-		cfg.Database.Username = user
+	if val := os.Getenv("DB_USERNAME"); val != "" {
+		cfg.Database.Username = val
 	}
-	if pass := os.Getenv("DB_PASSWORD"); pass != "" {
-		cfg.Database.Password = pass
+	if val := os.Getenv("DB_PASSWORD"); val != "" {
+		cfg.Database.Password = val
 	}
-	if db := os.Getenv("DB_DATABASE"); db != "" {
-		cfg.Database.Database = db
+	if val := os.Getenv("DB_DATABASE"); val != "" {
+		cfg.Database.Database = val
 	}
 
 	// Redis配置
-	if host := os.Getenv("REDIS_HOST"); host != "" {
-		cfg.Redis.Host = host
+	if val := os.Getenv("REDIS_HOST"); val != "" {
+		cfg.Redis.Host = val
 	}
-	if port := os.Getenv("REDIS_PORT"); port != "" {
-		if p, err := strconv.Atoi(port); err == nil {
-			cfg.Redis.Port = p
+	if val := os.Getenv("REDIS_PORT"); val != "" {
+		if port, err := strconv.Atoi(val); err == nil {
+			cfg.Redis.Port = port
 		}
 	}
-	if pass := os.Getenv("REDIS_PASSWORD"); pass != "" {
-		cfg.Redis.Password = pass
-	}
-
-	// MongoDB配置
-	if uri := os.Getenv("MONGO_URI"); uri != "" {
-		cfg.MongoDB.URI = uri
-	}
-	if db := os.Getenv("MONGO_DATABASE"); db != "" {
-		cfg.MongoDB.Database = db
+	if val := os.Getenv("REDIS_PASSWORD"); val != "" {
+		cfg.Redis.Password = val
 	}
 
 	// JWT配置
-	if secret := os.Getenv("JWT_SECRET_KEY"); secret != "" {
-		cfg.JWT.SecretKey = secret
-	}
-	if expire := os.Getenv("JWT_EXPIRATION_HOURS"); expire != "" {
-		if e, err := strconv.Atoi(expire); err == nil {
-			cfg.JWT.ExpirationHours = e
-		}
-	}
-	if issuer := os.Getenv("JWT_ISSUER"); issuer != "" {
-		cfg.JWT.Issuer = issuer
+	if val := os.Getenv("JWT_SECRET_KEY"); val != "" {
+		cfg.JWT.SecretKey = val
 	}
 }
 
 // validate 验证配置
 func validate(cfg *Config) error {
+	// 验证服务器配置
 	if cfg.Server.Port <= 0 || cfg.Server.Port > 65535 {
-		return fmt.Errorf("invalid server port: %d", cfg.Server.Port)
+		return fmt.Errorf("无效的服务器端口: %d", cfg.Server.Port)
 	}
 
+	// 验证数据库配置
 	if cfg.Database.Host == "" {
-		return fmt.Errorf("database host is required")
+		return fmt.Errorf("数据库主机不能为空")
 	}
-
+	if cfg.Database.Port <= 0 || cfg.Database.Port > 65535 {
+		return fmt.Errorf("无效的数据库端口: %d", cfg.Database.Port)
+	}
 	if cfg.Database.Username == "" {
-		return fmt.Errorf("database username is required")
+		return fmt.Errorf("数据库用户名不能为空")
 	}
-
 	if cfg.Database.Database == "" {
-		return fmt.Errorf("database name is required")
+		return fmt.Errorf("数据库名不能为空")
 	}
 
-	if cfg.JWT.SecretKey == "" || cfg.JWT.SecretKey == "your-secret-key-change-in-production" {
-		return fmt.Errorf("JWT secret key must be set and not use default value")
+	// 验证Redis配置
+	if cfg.Redis.Host == "" {
+		return fmt.Errorf("Redis主机不能为空")
+	}
+	if cfg.Redis.Port <= 0 || cfg.Redis.Port > 65535 {
+		return fmt.Errorf("无效的Redis端口: %d", cfg.Redis.Port)
 	}
 
+	// 验证JWT配置
+	if cfg.JWT.SecretKey == "" {
+		return fmt.Errorf("JWT密钥不能为空")
+	}
 	if cfg.JWT.ExpirationHours <= 0 {
-		return fmt.Errorf("JWT expiration hours must be positive")
-	}
-
-	if !contains([]string{"debug", "release", "test"}, cfg.Server.Mode) {
-		return fmt.Errorf("invalid server mode: %s", cfg.Server.Mode)
-	}
-
-	if !contains([]string{"debug", "info", "warn", "error"}, cfg.Log.Level) {
-		return fmt.Errorf("invalid log level: %s", cfg.Log.Level)
+		return fmt.Errorf("JWT过期时间必须大于0")
 	}
 
 	return nil
 }
 
-// contains 检查字符串是否在切片中
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if strings.EqualFold(s, item) {
-			return true
-		}
-	}
-	return false
-}
-
-// GetDSN 获取MySQL数据源名称
+// GetDSN 获取数据库连接字符串
 func (cfg *Config) GetDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 		cfg.Database.Username,

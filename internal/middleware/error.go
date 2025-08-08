@@ -50,7 +50,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 // NotFoundMiddleware 404处理中间件
 func NotFoundMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		utils.ErrorResponse(c, "not_found", map[string]interface{}{
+		utils.ErrorWithNotFund(c, "not_found", map[string]interface{}{
 			"path": c.Request.URL.Path,
 		})
 	}

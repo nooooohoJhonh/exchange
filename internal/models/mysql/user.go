@@ -54,13 +54,11 @@ func (u *User) ValidateEmail() error {
 	if err := utils.ValidateEmail(u.Email); err != nil {
 		return err
 	}
-
-	// 转换为小写
 	u.Email = strings.ToLower(u.Email)
 	return nil
 }
 
-// SetPassword 设置密码（加密存储）
+// SetPassword 设置密码
 func (u *User) SetPassword(password string) error {
 	if err := utils.ValidatePassword(password); err != nil {
 		return err
@@ -93,7 +91,7 @@ func (u *User) IsActive() bool {
 
 // CanLogin 检查是否可以登录
 func (u *User) CanLogin() bool {
-	return u.IsActive() && !u.IsAdmin()
+	return u.IsActive()
 }
 
 // UpdateLoginInfo 更新登录信息
@@ -113,20 +111,8 @@ func (u *User) Validate() error {
 		return err
 	}
 
-	// 验证角色
-	switch u.Role {
-	case UserRoleUser, UserRoleAdmin:
-		// 角色有效
-	default:
-		return errors.New("invalid user role")
-	}
-
-	// 验证状态
-	switch u.Status {
-	case UserStatusActive, UserStatusInactive, UserStatusBanned:
-		// 状态有效
-	default:
-		return errors.New("invalid user status")
+	if u.PasswordHash == "" {
+		return errors.New("密码不能为空")
 	}
 
 	return nil
@@ -147,7 +133,7 @@ func (u *User) ToPublicUser() *PublicUser {
 	}
 }
 
-// PublicUser 公开用户信息（不包含敏感数据）
+// PublicUser 公开用户信息
 type PublicUser struct {
 	ID          uint       `json:"id"`
 	Username    string     `json:"username"`

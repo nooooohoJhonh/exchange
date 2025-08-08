@@ -27,44 +27,24 @@ type APIResponse struct {
 	RequestID string      `json:"request_id,omitempty"`
 }
 
-// ResponseBuilder 响应构建器
-type ResponseBuilder struct {
-	context *gin.Context
-	i18n    *i18n.I18nManager
-	lang    string
-}
-
-// NewResponseBuilder 创建响应构建器
-func NewResponseBuilder(c *gin.Context) *ResponseBuilder {
-	// 获取i18n管理器
-	var i18nManager *i18n.I18nManager
+// getI18nManager 获取国际化管理器
+func getI18nManager(c *gin.Context) *i18n.I18nManager {
 	if manager, exists := c.Get("i18n"); exists {
 		if mgr, ok := manager.(*i18n.I18nManager); ok {
-			i18nManager = mgr
+			return mgr
 		}
 	}
-	if i18nManager == nil {
-		i18nManager = i18n.GetGlobalI18n()
-	}
-
-	// 获取语言，使用i18n包的语言获取函数
-	lang := i18n.GetLanguageFromContext(c)
-
-	return &ResponseBuilder{
-		context: c,
-		i18n:    i18nManager,
-		lang:    lang,
-	}
+	return i18n.GetGlobalI18n()
 }
 
-// translate 翻译消息
-func (rb *ResponseBuilder) translate(key string, templateData map[string]interface{}) string {
-	return rb.i18n.Translate(rb.lang, key, templateData)
+// getLanguage 获取语言
+func getLanguage(c *gin.Context) string {
+	return i18n.GetLanguageFromContext(c)
 }
 
 // getRequestID 获取请求ID
-func (rb *ResponseBuilder) getRequestID() string {
-	if requestID, exists := rb.context.Get("request_id"); exists {
+func getRequestID(c *gin.Context) string {
+	if requestID, exists := c.Get("request_id"); exists {
 		if id, ok := requestID.(string); ok {
 			return id
 		}
@@ -73,75 +53,66 @@ func (rb *ResponseBuilder) getRequestID() string {
 }
 
 // buildResponse 构建响应
-func (rb *ResponseBuilder) buildResponse(code int, messageKey string, data interface{}, templateData map[string]interface{}) APIResponse {
-	message := rb.translate(messageKey, templateData)
+func buildResponse(c *gin.Context, code int, messageKey string, data interface{}, templateData map[string]interface{}) APIResponse {
+	i18nManager := getI18nManager(c)
+	lang := getLanguage(c)
+	message := i18nManager.Translate(lang, messageKey, templateData)
 
-	response := APIResponse{
+	// 如果是错误响应，将错误详情包含在Data中
+	if code != CodeSuccess && templateData != nil {
+		if data == nil {
+			data = templateData
+		} else {
+			// 如果data已经存在，将templateData合并到data中
+			if dataMap, ok := data.(map[string]interface{}); ok {
+				for k, v := range templateData {
+					dataMap[k] = v
+				}
+			}
+		}
+	}
+
+	return APIResponse{
 		Code:      code,
 		Message:   message,
 		Data:      data,
 		Timestamp: time.Now().Unix(),
-		RequestID: rb.getRequestID(),
+		RequestID: getRequestID(c),
 	}
-
-	return response
 }
-
-// Success 成功响应
-func (rb *ResponseBuilder) Success(data interface{}) {
-	response := rb.buildResponse(CodeSuccess, "success", data, nil)
-	rb.context.JSON(http.StatusOK, response)
-}
-
-// SuccessWithMessage 带自定义消息的成功响应
-func (rb *ResponseBuilder) SuccessWithMessage(messageKey string, data interface{}, templateData map[string]interface{}) {
-	response := rb.buildResponse(CodeSuccess, messageKey, data, templateData)
-	rb.context.JSON(http.StatusOK, response)
-}
-
-// Error 错误响应
-func (rb *ResponseBuilder) Error(code int, messageKey string, templateData map[string]interface{}) {
-	httpStatus := getHTTPStatus(code)
-	response := rb.buildResponse(code, messageKey, templateData, templateData)
-	rb.context.JSON(httpStatus, response)
-}
-
-// ErrorWithData 带数据的错误响应
-func (rb *ResponseBuilder) ErrorWithData(code int, messageKey string, data interface{}, templateData map[string]interface{}) {
-	httpStatus := getHTTPStatus(code)
-	response := rb.buildResponse(code, messageKey, data, templateData)
-	rb.context.JSON(httpStatus, response)
-}
-
-// 便捷函数（默认使用中文）
 
 // Success 成功响应
 func Success(c *gin.Context, data interface{}) {
-	NewResponseBuilder(c).Success(data)
+	response := buildResponse(c, CodeSuccess, "success", data, nil)
+	c.JSON(http.StatusOK, response)
 }
 
 // SuccessWithMessage 带自定义消息的成功响应
 func SuccessWithMessage(c *gin.Context, messageKey string, data interface{}, templateData map[string]interface{}) {
-	NewResponseBuilder(c).SuccessWithMessage(messageKey, data, templateData)
+	response := buildResponse(c, CodeSuccess, messageKey, data, templateData)
+	c.JSON(http.StatusOK, response)
 }
 
 // ErrorResponse 错误响应
 func ErrorResponse(c *gin.Context, messageKey string, templateData map[string]interface{}) {
-	NewResponseBuilder(c).Error(CodeFailure, messageKey, templateData)
+	response := buildResponse(c, CodeFailure, messageKey, nil, templateData)
+	c.JSON(http.StatusOK, response)
 }
 
 // ErrorWithData 带数据的错误响应
 func ErrorWithData(c *gin.Context, messageKey string, data interface{}, templateData map[string]interface{}) {
-	NewResponseBuilder(c).ErrorWithData(CodeFailure, messageKey, data, templateData)
+	response := buildResponse(c, CodeFailure, messageKey, data, templateData)
+	c.JSON(http.StatusOK, response)
 }
 
-// ErrorResponseWithAuth 认证错误响应（返回401错误码）
+// ErrorWithNotFund 获取不到请求
+func ErrorWithNotFund(c *gin.Context, messageKey string, templateData map[string]interface{}) {
+	response := buildResponse(c, CodeFailure, messageKey, nil, templateData)
+	c.JSON(http.StatusBadRequest, response)
+}
+
+// ErrorResponseWithAuth 认证错误响应
 func ErrorResponseWithAuth(c *gin.Context, messageKey string, templateData map[string]interface{}) {
-	NewResponseBuilder(c).Error(CodeUnauthorized, messageKey, templateData)
-}
-
-// getHTTPStatus 根据错误码获取HTTP状态码
-func getHTTPStatus(code int) int {
-	// 所有响应都返回200状态码，前端通过code字段判断业务状态
-	return http.StatusOK
+	response := buildResponse(c, CodeUnauthorized, messageKey, nil, templateData)
+	c.JSON(http.StatusOK, response)
 }

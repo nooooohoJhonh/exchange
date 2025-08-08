@@ -26,76 +26,64 @@ func NewApplication(cfg *config.Config) *Application {
 
 // Initialize 初始化应用程序
 func (app *Application) Initialize() error {
-	// 初始化日志系统
 	if err := app.initializeLogger(); err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
+		return fmt.Errorf("初始化日志失败: %w", err)
 	}
 
-	logger.Info("Initializing application...", nil)
+	logger.Info("正在初始化应用...", nil)
 
-	// 初始化模块管理器
 	if err := app.initializeModuleManager(); err != nil {
-		return fmt.Errorf("failed to initialize module manager: %w", err)
+		return fmt.Errorf("初始化模块管理器失败: %w", err)
 	}
 
-	// 初始化服务器
 	if err := app.initializeServer(); err != nil {
-		return fmt.Errorf("failed to initialize server: %w", err)
+		return fmt.Errorf("初始化服务器失败: %w", err)
 	}
 
-	logger.Info("Application initialized successfully", nil)
+	logger.Info("应用初始化成功", nil)
 	return nil
 }
 
 // initializeLogger 初始化日志系统
 func (app *Application) initializeLogger() error {
 	if err := logger.Init(&app.config.Log); err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
+		return fmt.Errorf("初始化日志失败: %w", err)
 	}
 	return nil
 }
 
 // initializeModuleManager 初始化模块管理器
 func (app *Application) initializeModuleManager() error {
-	// 使用全局服务中的数据库连接
 	globalServices := services.GetGlobalServices()
 
-	// 检查全局服务是否已初始化
 	if !globalServices.IsInitialized() {
-		return fmt.Errorf("global services not initialized")
+		return fmt.Errorf("全局服务未初始化")
 	}
 
-	// 获取数据库服务
 	mysqlService := globalServices.GetMySQL()
 	redisService := globalServices.GetRedis()
 	mongoService := globalServices.GetMongoDB()
 
 	if mysqlService == nil || redisService == nil || mongoService == nil {
-		return fmt.Errorf("database services not available")
+		return fmt.Errorf("数据库服务不可用")
 	}
 
-	// 创建模块管理器，传入全局服务
 	app.moduleManager = modules.NewModuleManagerWithServices(app.config, mysqlService, redisService, mongoService)
 	return app.moduleManager.Initialize()
 }
 
 // initializeServer 初始化服务器
 func (app *Application) initializeServer() error {
-	// 创建Gin服务器
 	app.server = server.NewGinServer(app.config)
-
-	// 设置路由
 	app.server.SetupRoutes(app.moduleManager.SetupRoutes)
-
 	return nil
 }
 
 // Start 启动应用程序
 func (app *Application) Start() error {
 	if app.server == nil {
-		return fmt.Errorf("server not initialized")
+		return fmt.Errorf("服务器未初始化")
 	}
-
 	return app.server.Start()
 }
 
